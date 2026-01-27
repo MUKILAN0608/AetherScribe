@@ -1,0 +1,16 @@
+experiment:
+  max_steps: 10
+  seed: 42
+
+story:
+  initial_phase: intro
+  initial_tension: 0.2
+
+agents:
+  protagonist_actions: [investigate, confront, wait]
+  antagonist_actions: [deceive, reveal_clue, escalate]
+  ally_actions: [warn, assist, stay_silent]
+
+logging:
+  enable: true
+  log_dir: logs
