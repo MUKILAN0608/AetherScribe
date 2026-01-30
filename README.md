@@ -4,7 +4,7 @@ A research-oriented framework for adaptive story generation using explainable mu
 ## Project Structure
 
 ```text
-├── agents/
+├── agents/                             
 │   ├── protagonist.py
 │   ├── antagonist.py
 │   └── ally.py                                        
