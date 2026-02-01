@@ -2,6 +2,7 @@
 
 **AetherScribe Lab** (v5.4.2 High-Transparency Edition) is a high-performance research platform for analyzing multi-agent narrative dynamics governed by Quantum Reinforcement Learning. It bridges the gap between complex quantum logic and human-readable storytelling by providing "Explainable AI" at every step of the creative process.
 
+<<<<<<< HEAD
 ## 🔬 Research Value
 - **Explainable Quantum Logic**: v5.4.2 introduces "Simple-Word Narratives" that translate complex quantum probability into character-driven reasoning.
 - **Why-Not Analysis**: Real-time tracking and explanation of rejected actions, showing the "paths not taken" and the logical reasons for their suppression.
@@ -49,6 +50,36 @@ If you utilize this platform for your research, please cite it as follows:
   year = {2026},
   url = {https://github.com/MUKILAN0608/quantum_rl}
 }
+=======
+```text
+├── agents/                             
+│   ├── protagonist.py
+│   ├── antagonist.py                                 
+│   └── ally.py                                        
+│
+├── environment/
+│   └── story_env.py                                   
+│                  
+├── quantum_policy/
+│   └── qrl_policy.py
+│
+├── llm/
+│   └── story_generator.py
+│
+├── explainability/
+│   └── explanation_engine.py
+│
+├── configs/
+│   └── config.yaml
+│
+├── experiments/
+│   └── run_experiment.py
+│
+├── logs/
+│
+├── requirements.txt
+└── README.md
+>>>>>>> 5212dd208a537abe6cbae6f9a7c3126637ce3ca8
 ```
 
 ---
