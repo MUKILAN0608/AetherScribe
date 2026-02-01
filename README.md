@@ -6,7 +6,7 @@ A research-oriented framework for adaptive story generation using explainable mu
 ```text
 ├── agents/                             
 │   ├── protagonist.py
-│   ├── antagonist.py                   
+│   ├── antagonist.py                                 
 │   └── ally.py                                        
 │
 ├── environment/
