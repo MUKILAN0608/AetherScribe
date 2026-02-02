@@ -354,29 +354,33 @@ def main():
     # --- RESEARCH RESULTS ---
     if st.session_state.current_episode:
         ep = st.session_state.current_episode
-        st.markdown(f"<h2 style='text-align: center; color: #58a6ff; letter-spacing: 0.15em; margin-bottom: 5rem; font-weight: 300;'>YOUR {ep['genre'].upper()} STORY</h2>", unsafe_allow_html=True)
 
         # Create Name Map for display and charts
         name_map = {role.capitalize(): name for role, name in ep['characters'].items()}
 
-        for scene in ep['scenes']:
-            # Resolution
-            content = scene['story'].split("[QUANTUM_TRACE]")
-            res_line = content[0].replace(f"[SCENE {scene['step']}]", "").replace("RESULT:", "").strip()
-            trace_content = content[1].strip() if len(content) > 1 else "Story logic applied."
-            joint_action = scene['action']
+        tab_story, tab_research = st.tabs(["🖋️ Manuscript", "🔬 Research Dashboard"])
 
-            # Build Rejection Rows for Research Audit
-            rejection_rows = ""
-            for i, r in enumerate(scene['rejections'][:3]):
-                # Map roles in actions to names
-                formatted_actions = ", ".join([f"{name_map.get(c, c)}: {a.replace('_', ' ')}" for c, a in r['action'].items()])
-                # Use deep rejection if available
-                deep_reason = scene.get('deep_rejections', [])[i] if i < len(scene.get('deep_rejections', [])) else r['reason']
-                rejection_rows += f"<tr><td>{formatted_actions}</td><td>{r['prob']*100:.1f}%</td><td>{deep_reason}</td></tr>"
+        with tab_story:
+            st.markdown(f"<h2 style='text-align: center; color: #58a6ff; letter-spacing: 0.15em; margin-bottom: 5rem; font-weight: 300;'>YOUR {ep['genre'].upper()} STORY</h2>", unsafe_allow_html=True)
 
-            # Render Manuscript Card
-            st.markdown(f"""
+            for scene in ep['scenes']:
+                # Resolution
+                content = scene['story'].split("[QUANTUM_TRACE]")
+                res_line = content[0].replace(f"[SCENE {scene['step']}]", "").replace("RESULT:", "").strip()
+                trace_content = content[1].strip() if len(content) > 1 else "Story logic applied."
+                joint_action = scene['action']
+
+                # Build Rejection Rows for Research Audit
+                rejection_rows = ""
+                for i, r in enumerate(scene['rejections'][:3]):
+                    # Map roles in actions to names
+                    formatted_actions = ", ".join([f"{name_map.get(c, c)}: {a.replace('_', ' ')}" for c, a in r['action'].items()])
+                    # Use deep rejection if available
+                    deep_reason = scene.get('deep_rejections', [])[i] if i < len(scene.get('deep_rejections', [])) else r['reason']
+                    rejection_rows += f"<tr><td>{formatted_actions}</td><td>{r['prob']*100:.1f}%</td><td>{deep_reason}</td></tr>"
+
+                # Render Manuscript Card
+                st.markdown(f"""
 <div class="manuscript-card">
 <div class="scene-marker">Scene {scene['step'] + 1}</div>
 <div class="manuscript-prose">"{res_line}"</div>
@@ -418,10 +422,7 @@ Logic Note: {trace_content}
 </div>
 """, unsafe_allow_html=True)
 
-        st.divider()
-
-        # --- NARRATIVE PHYSICS (APPENDIX) ---
-        with st.container():
+        with tab_research:
             st.subheader("📊 Research Dashboard: Multi-Agent Narrative Telemetry")
             st.markdown("12-Point Analysis Grid for Decision Intelligence Audit.")
 
@@ -485,12 +486,12 @@ Logic Note: {trace_content}
                 st.markdown("#### Rel Dynamics")
                 trust_vals = [s['state']['relationships']['protagonist_ally']['trust'] for s in ep['scenes']]
                 enmity_vals = [s['state']['relationships']['protagonist_antagonist']['enmity'] for s in ep['scenes']]
-                p_name = name_map.get("Protagonist", "Hero")
-                a_name = name_map.get("Antagonist", "Villain")
-                l_name = name_map.get("Ally", "Friend")
+                p_name_rel = name_map.get("Protagonist", "Hero")
+                a_name_rel = name_map.get("Antagonist", "Villain")
+                l_name_rel = name_map.get("Ally", "Friend")
                 fig_rel = go.Figure()
-                fig_rel.add_trace(go.Scatter(x=steps, y=trust_vals, name=f"{p_name}-{l_name}", line=dict(color='#3fb950', width=2)))
-                fig_rel.add_trace(go.Scatter(x=steps, y=enmity_vals, name=f"{p_name}-{a_name}", line=dict(color='#f85149', width=2)))
+                fig_rel.add_trace(go.Scatter(x=steps, y=trust_vals, name=f"{p_name_rel}-{l_name_rel}", line=dict(color='#3fb950', width=2)))
+                fig_rel.add_trace(go.Scatter(x=steps, y=enmity_vals, name=f"{p_name_rel}-{a_name_rel}", line=dict(color='#f85149', width=2)))
                 fig_rel.update_layout(showlegend=False, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=250, margin=dict(l=0,r=0,t=30,b=0))
                 st.plotly_chart(fig_rel, use_container_width=True)
 
@@ -518,7 +519,7 @@ Logic Note: {trace_content}
                 fig_probs.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=250, margin=dict(l=0,r=0,t=30,b=0))
                 st.plotly_chart(fig_probs, use_container_width=True)
 
-            # Row 4 (Wider visual row)
+            # Row 4
             r4_c1, r4_c2, r4_c3 = st.columns(3)
             with r4_c1:
                 st.markdown("#### Narrative Shape")
@@ -530,26 +531,24 @@ Logic Note: {trace_content}
                     fig3.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=250, margin=dict(l=0,r=0,t=30,b=0))
                     st.plotly_chart(fig3, use_container_width=True)
                 else:
-                    st.info("Insufficient data for PCA.")
+                    st.info("Insufficient data.")
 
             with r4_c2:
                 st.markdown("#### Branching Audit")
                 sources, targets, values, labels = [], [], [], []
-                p_role = "Protagonist"
-                a_role = "Antagonist"
-                p_char_name = name_map.get(p_role, "Hero")
-                a_char_name = name_map.get(a_role, "Villain")
+                p_role_s = "Protagonist"
+                a_role_s = "Antagonist"
+                p_char_name_s = name_map.get(p_role_s, "Hero")
+                a_char_name_s = name_map.get(a_role_s, "Villain")
 
                 for i, scene in enumerate(ep['scenes']):
                     labels.append(f"S{i+1}")
                     curr = len(labels) - 1
-
-                    labels.append(f"{p_char_name[:5]}...")
+                    labels.append(f"{p_char_name_s[:5]}...")
                     chosen = len(labels) - 1
                     sources.append(curr); targets.append(chosen); values.append(scene['probs'][scene['action_idx']])
-
                     if scene['rejections']:
-                        labels.append(f"{a_char_name[:5]}?")
+                        labels.append(f"{a_char_name_s[:5]}?")
                         rej = len(labels) - 1
                         sources.append(curr); targets.append(rej); values.append(scene['rejections'][0]['prob'])
 
