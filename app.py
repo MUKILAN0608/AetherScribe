@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import re
+import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
 try:
@@ -367,11 +368,34 @@ def main():
 <div class="manuscript-card">
 <div class="scene-marker">Scene {scene['step'] + 1}</div>
 <div class="manuscript-prose">"{res_line}"</div>
+
+<div class="status-bar" style="margin-bottom: 2rem; background-color: #0d1117; padding: 0.8rem; border-radius: 6px;">
+<div class="status-item" style="font-size: 0.6rem;"><div class="active-dot" style="background-color: #58a6ff;"></div> Tension: {scene['state']['tension']:.2f}</div>
+<div class="status-item" style="font-size: 0.6rem;"><div class="active-dot" style="background-color: #3fb950;"></div> Reward: {scene['reward']:.2f}</div>
+<div class="status-item" style="font-size: 0.6rem;"><div class="active-dot" style="background-color: #d29922;"></div> Entropy: {scene['entropy']:.2f}</div>
+<div class="status-item" style="font-size: 0.6rem;"><div class="active-dot" style="background-color: #f85149;"></div> Risk: {scene['risk']:.2f}</div>
+</div>
+
 <div class="audit-section">
 <span class="audit-header">Why this happened</span>
 <div class="logic-block">
 {scene['rationale']}
 </div>
+
+<span class="audit-header">Research Audit: Alternative Path Suppression</span>
+<table class="selection-table">
+<thead>
+<tr>
+<th>Alternative Action</th>
+<th>Probability</th>
+<th>Rejection Reason</th>
+</tr>
+</thead>
+<tbody>
+{"".join([f"<tr><td>{', '.join([f'{c}: {a.replace('_', ' ')}' for c, a in r['action'].items()])}</td><td>{r['prob']*100:.1f}%</td><td>{r['reason']}</td></tr>" for r in scene['rejections'][:3]])}
+</tbody>
+</table>
+
 <div class="technical-log">
 <b>Scene Insights:</b><br>
 Tension: {scene['state']['tension']*100:.0f}% | Interest Score: {scene['reward']:.2f}<br>
@@ -481,14 +505,50 @@ Logic Note: {trace_content}
 
             if HAS_PCA and len(ep['scenes']) >= 2:
                 st.divider()
-                st.markdown("#### The Story's 'Shape'")
-                h = [[s['state']['tension'], s['reward'], s['entropy'], s['risk']] for s in ep['scenes']]
-                pca = PCA(n_components=2); coords = pca.fit_transform(h)
-                fig3 = px.scatter(x=coords[:,0], y=coords[:,1], text=[f"Scene {i+1}" for i in range(len(coords))])
-                fig3.update_traces(marker=dict(size=18, color='#58a6ff', line=dict(width=2, color='white')))
-                fig3.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=450)
-                st.plotly_chart(fig3, use_container_width=True)
-                st.info("This map shows how consistent the story's logic was from start to finish.")
+                col_pca, col_heat = st.columns(2)
+                with col_pca:
+                    st.markdown("#### The Story's 'Shape'")
+                    h = [[s['state']['tension'], s['reward'], s['entropy'], s['risk']] for s in ep['scenes']]
+                    pca = PCA(n_components=2); coords = pca.fit_transform(h)
+                    fig3 = px.scatter(x=coords[:,0], y=coords[:,1], text=[f"Scene {i+1}" for i in range(len(coords))])
+                    fig3.update_traces(marker=dict(size=18, color='#58a6ff', line=dict(width=2, color='white')))
+                    fig3.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=450, margin=dict(l=0,r=0,t=40,b=0))
+                    st.plotly_chart(fig3, use_container_width=True)
+                    st.info("Maps how consistent the story's logic was from start to finish.")
+
+                with col_heat:
+                    st.markdown("#### Trait Influence Heatmap")
+                    # Prepare data for heatmap: Scenes x Characters
+                    attr_data = []
+                    chars = ["Protagonist", "Antagonist", "Ally"]
+                    for s in ep['scenes']:
+                        attr_data.append([s['attribution'][c] for c in chars])
+
+                    fig_heat = px.imshow(
+                        np.array(attr_data).T,
+                        labels=dict(x="Scene", y="Character", color="Influence"),
+                        x=[f"S{i+1}" for i in range(len(ep['scenes']))],
+                        y=chars,
+                        color_continuous_scale="Viridis"
+                    )
+                    fig_heat.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=450, margin=dict(l=0,r=0,t=40,b=0))
+                    st.plotly_chart(fig_heat, use_container_width=True)
+                    st.info("Visualizes how character control shifted across the entire story arc.")
+
+                st.divider()
+                st.markdown("#### Narrative Trajectory: Tension vs. Utility")
+                # Scatter plot of Tension vs Reward with scene labels
+                fig_traj = px.scatter(
+                    x=tension_vals,
+                    y=reward_vals,
+                    text=steps,
+                    labels={'x': "Story Tension", 'y': "Trajectory Utility (Reward)"},
+                    trendline="ols" # Add trendline to show general direction
+                )
+                fig_traj.update_traces(marker=dict(size=14, color='#58a6ff', symbol='diamond'), textposition='top center')
+                fig_traj.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=500)
+                st.plotly_chart(fig_traj, use_container_width=True)
+                st.info("Research Insight: Analyzes the correlation between story pressure and the effectiveness of character decisions.")
 
         st.divider()
         d_col1, d_col2 = st.columns(2)
