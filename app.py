@@ -506,7 +506,7 @@ Logic Note: {trace_content}
                     sorted_probs = sorted(s['probs'], reverse=True)
                     gaps.append(sorted_probs[0] - sorted_probs[1])
 
-                fig_gap = go.Figure(data=go.Area(x=steps, y=gaps, marker_color='#bc8cff'))
+                fig_gap = go.Figure(data=go.Scatter(x=steps, y=gaps, fill='tozeroy', line=dict(color='#bc8cff')))
                 fig_gap.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=350, margin=dict(l=0,r=0,t=40,b=0))
                 st.plotly_chart(fig_gap, use_container_width=True)
                 st.info("Measures how 'clear' the best choice was compared to the runner-up. Small gaps indicate difficult dilemmas.")
