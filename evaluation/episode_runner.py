@@ -91,8 +91,12 @@ class EpisodeRunner:
                 "antagonist": self.action_space.antagonist,
                 "ally": self.action_space.ally
             }
+
+            # Map roles to names for explanation
+            name_map = {role.capitalize(): name for role, name in self.env.director_brief.get("characters", {}).items()}
+
             rationale = self.explainer.generate_explanation(
-                state_vec, joint_action, rejections=rejection_data, attribution=attribution, agents=agent_context
+                state_vec, joint_action, rejections=rejection_data, attribution=attribution, agents=agent_context, name_map=name_map
             )
             sensitivity = self.policy.get_feature_sensitivity(state_vec, trait_vec=trait_vec, eps_noise=eps)
 

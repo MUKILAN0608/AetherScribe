@@ -15,22 +15,27 @@ class StoryRenderer:
         """
         Research Protocol: Uses the LLM to provide deep narrative logic for why specific
         paths were rejected compared to the chosen one.
+        Uses actual character names for clarity.
         """
         genre = state['genre']
+        characters = state.get('director_brief', {}).get('characters', {})
+        name_map = {role.capitalize(): name for role, name in characters.items()}
 
         rejections_summary = []
         for rej in rejected_actions[:2]: # Analyze top 2 contenders
-            rej_text = ", ".join([f"{c}: {a.replace('_', ' ')}" for c, a in rej['action'].items()])
+            rej_text = ", ".join([f"{name_map.get(c, c)}: {a.replace('_', ' ')}" for c, a in rej['action'].items()])
+            chosen_text = ", ".join([f"{name_map.get(c, c)}: {a.replace('_', ' ')}" for c, a in chosen_action.items()])
+
             prompt = f"""
             [RESEARCH AUDIT: NARRATIVE BRANCHING ANALYSIS]
             DOMAIN: {genre}
-            CHOSEN PATH: {chosen_action}
+            CHOSEN PATH: {chosen_text}
             REJECTED PATH: {rej_text}
             QUANTUM RATIONALE: {rationale}
 
             TASK: Explain in exactly ONE simple sentence why the REJECTED PATH was logically
             inferior to the CHOSEN PATH for this specific story moment.
-            Focus on character motivation and narrative tension.
+            Use actual character names. Focus on character motivation and narrative tension.
             LANGUAGE: {language}
             """
             try:

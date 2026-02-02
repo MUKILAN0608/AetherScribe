@@ -1,7 +1,8 @@
 class ExplanationEngine:
-    def generate_explanation(self, state_vec, joint_action, rejections=None, attribution=None, agents=None):
+    def generate_explanation(self, state_vec, joint_action, rejections=None, attribution=None, agents=None, name_map=None):
         """
         Generates a detailed research-grade explanation of the decision logic and rejections.
+        Uses actual character names from name_map.
         """
         lines = []
         lines.append("### 🖋️ STORY DECISION: WHY THIS HAPPENED")
@@ -10,8 +11,9 @@ class ExplanationEngine:
         lines.append("The story was at a crossroads. Many different things could have happened, but the characters' personalities pushed the plot in one specific direction.")
 
         actions_desc = []
-        for character, action in joint_action.items():
-            actions_desc.append(f"**{character}** decided to {action.lower().replace('_', ' ')}")
+        for role, action in joint_action.items():
+            char_name = name_map.get(role, role) if name_map else role
+            actions_desc.append(f"**{char_name}** decided to {action.lower().replace('_', ' ')}")
 
         lines.append(f"\n**What happened:** " + " and ".join(actions_desc) + ".")
 
@@ -20,15 +22,19 @@ class ExplanationEngine:
             lines.append("\n#### ❌ WHY OTHER PATHS FAILED")
             # Take the top 2 rejections
             for rej in rejections[:2]:
-                rej_actions = [f"{c}: {a.replace('_', ' ')}" for c, a in rej['action'].items()]
+                rej_actions = []
+                for role, act in rej['action'].items():
+                    name = name_map.get(role, role) if name_map else role
+                    rej_actions.append(f"{name}: {act.replace('_', ' ')}")
                 lines.append(f"- **Path {rej['index']}** ({', '.join(rej_actions)}): {rej['reason']}")
 
         # 3. Character Motivation
         if attribution and agents:
-            top_agent_key = max(attribution, key=attribution.get)
-            top_agent_obj = agents.get(top_agent_key.lower())
+            top_role = max(attribution, key=attribution.get)
+            top_agent_obj = agents.get(top_role.lower())
+            top_char_name = name_map.get(top_role, top_role) if name_map else top_role
 
-            lines.append(f"\n**The Driver:** **{top_agent_key}** was the main person making things happen in this scene.")
+            lines.append(f"\n**The Driver:** **{top_char_name}** was the main person making things happen in this scene.")
 
             if top_agent_obj and hasattr(top_agent_obj, 'traits'):
                 traits = top_agent_obj.traits
