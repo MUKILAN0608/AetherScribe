@@ -297,43 +297,43 @@ def main():
 
     # --- CENTERED TITLE SECTION ---
     st.markdown("<h1 class='centered-header'>Aether Scribe</h1>", unsafe_allow_html=True)
-    st.markdown("<p class='centered-subheader'>Decision Intelligence & Multi-Agent Research Laboratory v5.4.2</p>", unsafe_allow_html=True)
+    st.markdown("<p class='centered-subheader'>Simple & Smart Storytelling Lab</p>", unsafe_allow_html=True)
 
     # Laboratory Status
     st.markdown(f"""
 <div class="status-bar">
-<div class="status-item"><div class="active-dot"></div> Quantum Core: ACTIVE</div>
-<div class="status-item"><div class="active-dot"></div> LLM Renderer: READY</div>
-<div class="status-item"><div class="active-dot"></div> Telemetry: ONLINE</div>
-<div class="status-item"><div class="active-dot" style="background-color: #58a6ff; box-shadow: 0 0 10px #58a6ff;"></div> Auth: AUTHORIZED</div>
+<div class="status-item"><div class="active-dot"></div> Story Brain: READY</div>
+<div class="status-item"><div class="active-dot"></div> Writer: READY</div>
+<div class="status-item"><div class="active-dot"></div> Analysis: ONLINE</div>
 </div>
 """, unsafe_allow_html=True)
 
     # --- LABORATORY CALIBRATION (MAIN PAGE) ---
     with st.container():
-        st.subheader("🖋️ Specification & Protocol Calibration")
-        seed = st.text_area("Narrative Seed / Story Premise", "Elias Vance investigations lead him to a corporate vault where Director Kael hides an AI ghost named Lyra.", height=120)
-        st.markdown("<div class='justification-memo'>**Research Necessity:** The seed defines the initial semantic constraints and character orientations. Without this, the quantum biasing weights have no mathematical anchor.</div>", unsafe_allow_html=True)
+        st.subheader("🖋️ Set Up Your Story")
+        seed = st.text_area("Story Idea (Premise)", "Elias Vance is looking for a secret corporate vault while Director Kael tries to stop him using an AI ghost named Lyra.", height=120)
+        st.markdown("<div class='justification-memo'>Give a starting point for your story and name your characters.</div>", unsafe_allow_html=True)
 
         rec_genre, extracted_chars = analyze_seed(seed)
 
         col1, col2, col3 = st.columns(3)
         with col1:
             genre_list = ["Thriller", "Horror", "Comedy", "Romance", "Drama", "Fantasy"]
-            genre = st.selectbox("Active Domain", genre_list, index=genre_list.index(rec_genre))
-            st.markdown("<span class='req-tag'>Requirement:</span> Genre выбор resolves corresponding tension multipliers for the narrative physics.", unsafe_allow_html=True)
+            genre = st.selectbox("Story Type", genre_list, index=genre_list.index(rec_genre))
         with col2:
-            lang = st.selectbox("Output Language", ["English", "Spanish", "French", "German", "Japanese"])
-            st.markdown("<span class='req-tag'>Requirement:</span> Localized rendering preserves semantic parity during the LLM feedback loop.", unsafe_allow_html=True)
+            lang = st.selectbox("Language", ["English", "Spanish", "French", "German", "Japanese"])
         with col3:
-            mode = st.selectbox("Trajectory Depth", ["Short Story", "Long Story"])
-            st.markdown("<span class='req-tag'>Requirement:</span> Determines the number of quantum measurement cycles for the story arc.", unsafe_allow_html=True)
+            mode = st.selectbox("Story Length", ["Short Story", "Long Story"])
 
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("EXECUTE RESEARCH PROTOCOL", type="primary", use_container_width=True):
+        if st.button("WRITE MY STORY", type="primary", use_container_width=True):
             roles = ["protagonist", "antagonist", "ally"]
-            char_names = extracted_chars + ["The Protagonist", "The Antagonist", "The Ally"]
-            char_map = {roles[i]: char_names[i] for i in range(len(roles))}
+            # Fill in names from seed, or use defaults
+            provided_names = extracted_chars
+            while len(provided_names) < 3:
+                provided_names.append(f"The {roles[len(provided_names)].capitalize()}")
+
+            char_map = {roles[i]: provided_names[i] for i in range(len(roles))}
 
             brief = {
                 "initial_story_premise": seed,
@@ -342,63 +342,41 @@ def main():
                 "max_scenes": 5 if mode == "Short Story" else 10,
                 "language": lang
             }
-            with st.spinner("Resolving Quantum Trajectory Utility..."):
+            with st.spinner("Building your story..."):
                 result = run_engine_protocol(brief, mode=mode)
                 if result:
                     st.session_state.current_episode = result
-                    st.toast("Protocol Execution Success")
+                    st.toast("Story Created Successfully!")
 
     st.divider()
 
     # --- RESEARCH RESULTS ---
     if st.session_state.current_episode:
         ep = st.session_state.current_episode
-        st.markdown(f"<h2 style='text-align: center; color: #58a6ff; letter-spacing: 0.15em; margin-bottom: 5rem; font-weight: 300;'>{ep['genre'].upper()} MANUSCRIPT RESOLUTION</h2>", unsafe_allow_html=True)
+        st.markdown(f"<h2 style='text-align: center; color: #58a6ff; letter-spacing: 0.15em; margin-bottom: 5rem; font-weight: 300;'>YOUR {ep['genre'].upper()} STORY</h2>", unsafe_allow_html=True)
 
         for scene in ep['scenes']:
             # Resolution
             content = scene['story'].split("[QUANTUM_TRACE]")
             res_line = content[0].replace(f"[SCENE {scene['step']}]", "").replace("RESULT:", "").strip()
-            trace_content = content[1].strip() if len(content) > 1 else "Logic internalized."
+            trace_content = content[1].strip() if len(content) > 1 else "Story logic applied."
             joint_action = scene['action']
 
-            # Render Manuscript Card (No indentation in f-string to prevent Streamlit rendering bug)
+            # Render Manuscript Card
             st.markdown(f"""
 <div class="manuscript-card">
-<div class="scene-marker">Observation Node {scene['step']} — {scene['state']['phase'].upper()}</div>
+<div class="scene-marker">Scene {scene['step'] + 1}</div>
 <div class="manuscript-prose">"{res_line}"</div>
 <div class="audit-section">
-<span class="audit-header">Selection Audit: Path Resolution Analysis</span>
-<table class="selection-table">
-<thead>
-<tr>
-<th>Character Combination</th>
-<th>Decision Status</th>
-<th>Probability</th>
-<th>Selection Logic</th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-selected">
-<td><b>Chosen:</b> {joint_action.get('Protagonist')} + {joint_action.get('Antagonist')} + {joint_action.get('Ally')}</td>
-<td>COLLAPSED</td>
-<td>{scene['probs'][scene['action_idx']]*100:.1f}%</td>
-<td>Optimal Utility</td>
-</tr>
-{"".join([f"<tr><td>{r['action']['Protagonist']} + {r['action']['Antagonist']} + {r['action']['Ally']}</td><td>REJECTED</td><td>{r['prob']*100:.1f}%</td><td>{r['reason']}</td></tr>" for r in scene['rejections'][:3]])}
-</tbody>
-</table>
-<div class='justification-memo'>**Research Significance:** Contrasting rejected paths is required to verify character agency. It proves that the quantum circuit actively suppresses 'boring' futures based on character traits and tension.</div>
+<span class="audit-header">Why this happened</span>
 <div class="logic-block">
-<p style="font-weight: 700; margin-bottom: 0.6rem; color: #58a6ff; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.12em;">Decision Rationale Memo</p>
-{trace_content}
+{scene['rationale']}
 </div>
 <div class="technical-log">
-[RESOLVER_LOG_NODE_{scene['step']}]
-STATUS: MEASURED_COLLAPSE
-ENTROPY: {scene['entropy']:.4f} | REWARD: {scene['reward']:.2f} | RISK: {scene['risk']*100:.0f}%
-ATTRIBUTION: P={scene['attribution']['Protagonist']:.2f}, A={scene['attribution']['Antagonist']:.2f}, L={scene['attribution']['Ally']:.2f}
-<b>Why this is required:</b> These low-level metrics verify character agency vs. narrative arc control for formal research.
+<b>Scene Insights:</b><br>
+Tension: {scene['state']['tension']*100:.0f}% | Interest Score: {scene['reward']:.2f}<br>
+Main Influencer: {max(scene['attribution'], key=scene['attribution'].get)}<br>
+Logic Note: {trace_content}
 </div>
 </div>
 </div>
@@ -408,45 +386,114 @@ ATTRIBUTION: P={scene['attribution']['Protagonist']:.2f}, A={scene['attribution'
 
         # --- NARRATIVE PHYSICS (APPENDIX) ---
         with st.container():
-            st.subheader("🔬 RESEARCH APPENDIX: NARRATIVE PHYSICS")
-            st.markdown("Mathematical verification of the story resolution forces.")
+            st.subheader("📊 Story Data & Visuals")
+            st.markdown("See how your story was built using the charts below.")
 
             pg1, pg2 = st.columns(2)
             with pg1:
-                st.markdown("#### Probability Surface")
-                fig1 = go.Figure(data=[go.Bar(
-                    x=[str(i) for i in range(16)],
-                    y=ep['scenes'][-1]['probs'],
-                    marker_color=['#58a6ff' if i == ep['scenes'][-1]['action_idx'] else '#30363d' for i in range(16)]
-                )])
-                fig1.update_layout(title="Active Quantum Superposition", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=350, margin=dict(l=0,r=0,t=40,b=0))
-                st.plotly_chart(fig1, use_container_width=True)
-                st.info("**Why this is required:** Visualizes the competitive 'What-If' landscape before path resolution.")
+                st.markdown("#### Story Tension Over Time")
+                tension_vals = [s['state']['tension'] for s in ep['scenes']]
+                steps = [f"Scene {s['step']+1}" for s in ep['scenes']]
+                fig_tension = go.Figure(data=go.Scatter(x=steps, y=tension_vals, mode='lines+markers', line=dict(color='#58a6ff', width=3)))
+                fig_tension.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=350, margin=dict(l=0,r=0,t=40,b=0), yaxis_range=[0,1])
+                st.plotly_chart(fig_tension, use_container_width=True)
+                st.info("This graph shows how the drama level rises and falls.")
 
             with pg2:
-                st.markdown("#### Influence Attribution")
+                st.markdown("#### Who Drove the Ending?")
                 agents = ["Protagonist", "Antagonist", "Ally"]
                 vals = [ep['scenes'][-1]['attribution'][a] for a in agents]
                 fig2 = go.Figure(data=[go.Pie(labels=agents, values=vals, hole=.4, marker=dict(colors=['#58a6ff', '#f85149', '#3fb950']))])
-                fig2.update_layout(title="Character Driver Distribution", paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=350, margin=dict(l=0,r=0,t=40,b=0))
+                fig2.update_layout(paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=350, margin=dict(l=0,r=0,t=40,b=0))
                 st.plotly_chart(fig2, use_container_width=True)
-                st.info("**Why this is required:** Quantifies whose traits drove the final resolution outcome.")
+                st.info("Shows which character had the most impact on the final scene.")
+
+            st.divider()
+
+            pg3, pg4 = st.columns(2)
+            with pg3:
+                st.markdown("#### All Possible Paths")
+                fig1 = go.Figure(data=[go.Bar(
+                    x=[f"Path {i+1}" for i in range(len(ep['scenes'][-1]['probs']))],
+                    y=ep['scenes'][-1]['probs'],
+                    marker_color=['#58a6ff' if i == ep['scenes'][-1]['action_idx'] else '#30363d' for i in range(len(ep['scenes'][-1]['probs']))]
+                )])
+                fig1.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=350, margin=dict(l=0,r=0,t=40,b=0))
+                st.plotly_chart(fig1, use_container_width=True)
+                st.info("The blue bar is the path chosen; the gray bars are other paths the story could have taken.")
+
+            with pg4:
+                st.markdown("#### Feature Sensitivity (Research)")
+                # Show how much each character trait/feature influenced the decision
+                features = ["Aggression", "Strategy", "Sneakiness", "Loyalty"]
+                sensitivity_vals = ep['scenes'][-1]['sensitivity']
+                fig_sens = go.Figure(data=[go.Bar(x=features, y=sensitivity_vals, marker_color='#ff7b72')])
+                fig_sens.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=350, margin=dict(l=0,r=0,t=40,b=0))
+                st.plotly_chart(fig_sens, use_container_width=True)
+                st.info("This shows which personality traits were most sensitive during this specific decision.")
+
+            st.divider()
+
+            pg5, pg6 = st.columns(2)
+            with pg5:
+                st.markdown("#### Story Quality (Reward)")
+                reward_vals = [s['reward'] for s in ep['scenes']]
+                fig_reward = go.Figure(data=go.Bar(x=steps, y=reward_vals, marker_color='#3fb950'))
+                fig_reward.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=350, margin=dict(l=0,r=0,t=40,b=0))
+                st.plotly_chart(fig_reward, use_container_width=True)
+                st.info("Higher bars mean the AI felt that scene was a better fit for the characters.")
+
+            with pg6:
+                st.markdown("#### Action Entropy (Certainty)")
+                entropy_vals = [s['entropy'] for s in ep['scenes']]
+                fig_entropy = go.Figure(data=go.Scatter(x=steps, y=entropy_vals, mode='lines+markers', line=dict(color='#d29922', width=3)))
+                fig_entropy.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=350, margin=dict(l=0,r=0,t=40,b=0))
+                st.plotly_chart(fig_entropy, use_container_width=True)
+                st.info("Lower entropy means the AI was more certain about its choice. Peaks show moments of 'creative doubt'.")
+
+            st.divider()
+
+            pg7, pg8 = st.columns(2)
+            with pg7:
+                st.markdown("#### Relationship Dynamics")
+                trust_vals = [s['state']['relationships']['protagonist_ally']['trust'] for s in ep['scenes']]
+                enmity_vals = [s['state']['relationships']['protagonist_antagonist']['enmity'] for s in ep['scenes']]
+                fig_rel = go.Figure()
+                fig_rel.add_trace(go.Scatter(x=steps, y=trust_vals, name="Hero-Ally Trust", line=dict(color='#3fb950', width=3)))
+                fig_rel.add_trace(go.Scatter(x=steps, y=enmity_vals, name="Hero-Villain Enmity", line=dict(color='#f85149', width=3)))
+                fig_rel.add_trace(go.Scatter(x=steps, y=tension_vals, name="World Tension", line=dict(color='#58a6ff', dash='dot')))
+                fig_rel.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=350, margin=dict(l=0,r=0,t=40,b=0))
+                st.plotly_chart(fig_rel, use_container_width=True)
+                st.info("Tracks how character bonds and rivalries evolve alongside the story tension.")
+
+            with pg8:
+                st.markdown("#### Decision Confidence Gap")
+                # Difference between the highest probability and the second highest
+                gaps = []
+                for s in ep['scenes']:
+                    sorted_probs = sorted(s['probs'], reverse=True)
+                    gaps.append(sorted_probs[0] - sorted_probs[1])
+
+                fig_gap = go.Figure(data=go.Area(x=steps, y=gaps, marker_color='#bc8cff'))
+                fig_gap.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=350, margin=dict(l=0,r=0,t=40,b=0))
+                st.plotly_chart(fig_gap, use_container_width=True)
+                st.info("Measures how 'clear' the best choice was compared to the runner-up. Small gaps indicate difficult dilemmas.")
 
             if HAS_PCA and len(ep['scenes']) >= 2:
                 st.divider()
-                st.markdown("#### Laboratory Analysis: Trajectory Projection")
+                st.markdown("#### The Story's 'Shape'")
                 h = [[s['state']['tension'], s['reward'], s['entropy'], s['risk']] for s in ep['scenes']]
                 pca = PCA(n_components=2); coords = pca.fit_transform(h)
-                fig3 = px.scatter(x=coords[:,0], y=coords[:,1], text=[f"Node {i}" for i in range(len(coords))])
+                fig3 = px.scatter(x=coords[:,0], y=coords[:,1], text=[f"Scene {i+1}" for i in range(len(coords))])
                 fig3.update_traces(marker=dict(size=18, color='#58a6ff', line=dict(width=2, color='white')))
-                fig3.update_layout(title="High-Dimensional Logic Map (PCA)", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=450)
+                fig3.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=450)
                 st.plotly_chart(fig3, use_container_width=True)
-                st.info("**Why this is required:** Maps logical narrative consistency across the entire story arc.")
+                st.info("This map shows how consistent the story's logic was from start to finish.")
 
         st.divider()
         d_col1, d_col2 = st.columns(2)
-        with d_col1: st.download_button("Export Raw Telemetry (JSON)", json.dumps(ep, indent=2), file_name="lab_data.json", use_container_width=True)
-        with d_col2: st.download_button("Export Manuscript (LaTeX)", generate_manuscript_latex(ep), file_name="manuscript.tex", use_container_width=True)
+        with d_col1: st.download_button("Save Story Data (JSON)", json.dumps(ep, indent=2), file_name="story_data.json", use_container_width=True)
+        with d_col2: st.download_button("Download Story (LaTeX)", generate_manuscript_latex(ep), file_name="story.tex", use_container_width=True)
 
     else:
         st.info("Laboratory Idle. Define a narrative seed above and click 'EXECUTE' to begin the protocol.")

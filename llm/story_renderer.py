@@ -19,7 +19,7 @@ class StoryRenderer:
         scene_index = state.get('step', 0)
 
         # 1. Primary Scene Generation (Decision-First Protocol)
-        prompt = build_prompt(state, actions, rationale, scene_index, previous_summary, language, mode)
+        prompt = build_prompt(state, actions, rationale, scene_index, previous_summary, language)
         response = self.model.generate_content(
             prompt,
             generation_config=genai.types.GenerationConfig(

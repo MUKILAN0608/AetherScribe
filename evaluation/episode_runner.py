@@ -92,8 +92,7 @@ class EpisodeRunner:
                 "ally": self.action_space.ally
             }
             rationale = self.explainer.generate_explanation(
-                state_vec, probs, expectations, self.policy.weights,
-                joint_action, env_reward, attribution=attribution, agents=agent_context
+                state_vec, joint_action, rejections=rejection_data, attribution=attribution, agents=agent_context
             )
             sensitivity = self.policy.get_feature_sensitivity(state_vec, trait_vec=trait_vec, eps_noise=eps)
 

@@ -88,7 +88,6 @@ class StoryEnvironment:
         Processes joint actions and evolves state + relationships.
         v5.4.2: Integrated Synergy-Aware reward logic.
         """
-        pre_genre = self.genre
         self._update_relationships(actions)
 
         # Calculate Tension
@@ -102,14 +101,6 @@ class StoryEnvironment:
         tension_delta = (raw_impact + perturbation + friction) * genre_factor
         self.tension = min(max(self.tension + tension_delta, 0.0), 1.0)
 
-        # Dynamic Genre Mutation
-        if self.tension > 0.85:
-            self.genre = "horror" if pre_genre in ["drama", "thriller"] else "fantasy"
-        elif self.tension > 0.65:
-            self.genre = "thriller" if pre_genre in ["drama", "comedy"] else "fantasy"
-        elif self.tension < 0.30:
-            self.genre = "romance" if pre_genre in ["drama"] else "comedy"
-
         # Phase Evolution
         if self.tension > 0.75: self.phase_index = 2
         elif self.tension > 0.45: self.phase_index = 1
@@ -120,7 +111,7 @@ class StoryEnvironment:
         # v5.4.2 Multi-Objective Reward + Synergy Bonus
         r_tension = self.tension
         r_progress = (self.current_step / self.max_steps) * 0.5
-        r_stability = 0.2 if self.genre == pre_genre else -0.1
+        r_stability = 0.2
 
         # Synergy Bonus: Reward high trust with Ally
         r_synergy = self.relationships["protagonist_ally"]["trust"] * 0.3

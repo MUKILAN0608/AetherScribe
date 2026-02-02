@@ -1,75 +1,43 @@
-from environment.genre_dynamics import GENRE_CONSTRAINTS
-
-def build_prompt(state, actions, rationale, scene_index, previous_summary=None, language="English", mode="Short Story"):
+def build_prompt(state, actions, rationale, scene_index, previous_summary=None, language="English"):
     """
-    Elite Decision-First Narrative Architect (v5.4.2).
-    Harden character naming and ultra-concise logic generation.
+    Simplified Storytelling Architect (v5.5.0).
+    Enforces strict character naming and clear, simple story progression.
     """
     director_brief = state.get("director_brief", {})
     genre = state['genre']
     characters = director_brief.get("characters", {})
-    specific_constraints = GENRE_CONSTRAINTS.get(genre.lower(), [])
 
-    constraints_str = "\n".join([f"- {c}" for c in specific_constraints])
-    continuity_str = f"- Previous State: {previous_summary}" if previous_summary else "- State: Initial Trajectory Collapse."
-
-    # Force Character Names (Anti-Hallucination Protocol v5.4.2)
+    # Character Name Enforcement
     p_name = characters.get("protagonist", "The Protagonist")
     a_name = characters.get("antagonist", "The Antagonist")
     l_name = characters.get("ally", "The Ally")
 
     persona_instruction = (
-        f"ROLE: PROTAGONIST | NAME: {p_name}\n"
-        f"ROLE: ANTAGONIST | NAME: {a_name}\n"
-        f"ROLE: ALLY | NAME: {l_name}"
+        f"CHARACTER NAMES:\n"
+        f"- Protagonist: {p_name}\n"
+        f"- Antagonist: {a_name}\n"
+        f"- Ally: {l_name}"
     )
 
     return f"""
-AETHER SCRIBE | DIGITAL NARRATIVE ARCHITECTURE (v5.4.2)
-ROLE: ELITE NARRATIVE ARCHITECT & QUANTUM SYSTEMS DIRECTOR
-OUTPUT LANGUAGE: {language}
-ARCHITECTURAL MODE: {mode}
+STORYTELLING INSTRUCTIONS
+LANGUAGE: {language}
+GENRE: {genre}
 
-────────────────────────────────────────
-STRICT PERSONA ENFORCEMENT:
 {persona_instruction}
 
-(CRITICAL: You MUST use these specific names consistently. NEVER use role placeholders like 'The Protagonist'. If names are assigned, they are absolute. Fail-safe: If names are missing, authorize genre-appropriate identities and stick to them.)
-────────────────────────────────────────
+STRICT RULE: Use ONLY the names listed above. Do NOT invent new names. Do NOT use generic titles like "The Protagonist".
 
-────────────────────────────────────────
-DECISION-FIRST SCENECRAFT PROTOCOL:
-1. OUTPUT: Focus strictly on the logic of the narrative shift. Do NOT generate prose blocks.
-2. DURATION: Generate exactly ONE high-density sentence summarizing the outcome.
-3. ADAPTATION: The result must strictly resolve the joint actions Decided by the Quantum Engine.
-4. TONE: Maintain the atmospheric precision of the {genre} domain.
+YOUR TASK:
+1. Write exactly ONE clear, descriptive sentence showing what happens in this scene.
+2. The scene MUST follow these specific character actions: {actions}
+3. The story must follow the logic of this reason: {rationale}
+4. Keep the story consistent with what happened before: {previous_summary if previous_summary else "This is the start of the story."}
 
-────────────────────────────────────────
-NARRATIVE CONTEXT:
-- Seed: {director_brief.get("initial_story_premise", "N/A")}
-- Domain: {genre}
-- Amplitude (Tension): {state['tension']:.2f}
-- Continuity: {continuity_str}
-
-GENRE CONSTRAINTS:
-{constraints_str}
-
-────────────────────────────────────────
-QUANTUM-LOCKED ACTIONS:
-{actions}
-
-────────────────────────────────────────
-ALGORITHMIC RATIONALE:
-{rationale}
-
-────────────────────────────────────────
-MANDATORY DECISION-FIRST FORMAT:
+FORMAT:
 [SCENE {scene_index}]
-
-RESULT: <A high-density 1-sentence summary of the outcome, strictly using authorized character names.>
+RESULT: <Your 1-sentence story update here>
 
 [QUANTUM_TRACE]
-
-<A high-level technical analysis explaining exactly why the engine chose this narrative line over alternatives.
-Explain how the current Tension ({state['tension']:.2f}) influenced the Quantum RL policy to select these specific joint actions to optimize trajectory utility.>
+<A simple, 1-sentence explanation of why the story took this turn based on the characters' goals and the current mood.>
 """
