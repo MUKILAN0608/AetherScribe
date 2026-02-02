@@ -11,6 +11,36 @@ class StoryRenderer:
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-2.0-flash')
 
+    def analyze_rejections(self, state, chosen_action, rejected_actions, rationale, language="English"):
+        """
+        Research Protocol: Uses the LLM to provide deep narrative logic for why specific
+        paths were rejected compared to the chosen one.
+        """
+        genre = state['genre']
+
+        rejections_summary = []
+        for rej in rejected_actions[:2]: # Analyze top 2 contenders
+            rej_text = ", ".join([f"{c}: {a.replace('_', ' ')}" for c, a in rej['action'].items()])
+            prompt = f"""
+            [RESEARCH AUDIT: NARRATIVE BRANCHING ANALYSIS]
+            DOMAIN: {genre}
+            CHOSEN PATH: {chosen_action}
+            REJECTED PATH: {rej_text}
+            QUANTUM RATIONALE: {rationale}
+
+            TASK: Explain in exactly ONE simple sentence why the REJECTED PATH was logically
+            inferior to the CHOSEN PATH for this specific story moment.
+            Focus on character motivation and narrative tension.
+            LANGUAGE: {language}
+            """
+            try:
+                response = self.model.generate_content(prompt).text
+                rejections_summary.append(response.strip())
+            except:
+                rejections_summary.append("This path lacked the necessary narrative energy to resolve the current conflict.")
+
+        return rejections_summary
+
     def render_scene(self, state, actions, rationale, previous_summary=None, language="English", temperature=0.8, mode="Short Story"):
         """
         Renders a story scene focusing on decision intelligence (v5.4.2).

@@ -97,6 +97,14 @@ class EpisodeRunner:
             sensitivity = self.policy.get_feature_sensitivity(state_vec, trait_vec=trait_vec, eps_noise=eps)
 
             # 5. Semantic Rendering (Decision-First)
+            deep_rejections = self.renderer.analyze_rejections(
+                state=state,
+                chosen_action=joint_action,
+                rejected_actions=rejection_data,
+                rationale=rationale,
+                language=language
+            )
+
             story_text, previous_summary, prompt_trace, coherence_score = self.renderer.render_scene(
                 state=state,
                 actions=joint_action,
@@ -123,6 +131,7 @@ class EpisodeRunner:
                 "risk": risk_score,
                 "attribution": attribution,
                 "rejections": rejection_data,
+                "deep_rejections": deep_rejections,
                 "sensitivity": sensitivity,
                 "coherence": float(coherence_score),
                 "rationale": rationale,

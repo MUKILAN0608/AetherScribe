@@ -365,9 +365,11 @@ def main():
 
             # Build Rejection Rows for Research Audit
             rejection_rows = ""
-            for r in scene['rejections'][:3]:
+            for i, r in enumerate(scene['rejections'][:3]):
                 formatted_actions = ", ".join([f"{c}: {a.replace('_', ' ')}" for c, a in r['action'].items()])
-                rejection_rows += f"<tr><td>{formatted_actions}</td><td>{r['prob']*100:.1f}%</td><td>{r['reason']}</td></tr>"
+                # Use deep rejection if available
+                deep_reason = scene.get('deep_rejections', [])[i] if i < len(scene.get('deep_rejections', [])) else r['reason']
+                rejection_rows += f"<tr><td>{formatted_actions}</td><td>{r['prob']*100:.1f}%</td><td>{deep_reason}</td></tr>"
 
             # Render Manuscript Card
             st.markdown(f"""
@@ -540,6 +542,39 @@ Logic Note: {trace_content}
                     fig_heat.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=450, margin=dict(l=0,r=0,t=40,b=0))
                     st.plotly_chart(fig_heat, use_container_width=True)
                     st.info("Visualizes how character control shifted across the entire story arc.")
+
+                st.divider()
+                st.markdown("#### 🌿 Narrative Branching Map (Sankey)")
+                # Build Sankey Diagram showing Path Decisions
+                sources = []
+                targets = []
+                values = []
+                labels = []
+
+                for i, scene in enumerate(ep['scenes']):
+                    # Node label for current scene
+                    labels.append(f"Scene {i+1}")
+                    current_node = len(labels) - 1
+
+                    # Add chosen action
+                    labels.append(f"Chosen: {scene['action']['Protagonist'][:10]}...")
+                    chosen_node = len(labels) - 1
+                    sources.append(current_node); targets.append(chosen_node); values.append(scene['probs'][scene['action_idx']])
+
+                    # Add top rejection
+                    if scene['rejections']:
+                        rej = scene['rejections'][0]
+                        labels.append(f"Rejected: {rej['action']['Protagonist'][:10]}...")
+                        rej_node = len(labels) - 1
+                        sources.append(current_node); targets.append(rej_node); values.append(rej['prob'])
+
+                fig_sankey = go.Figure(data=[go.Sankey(
+                    node = dict(pad = 15, thickness = 20, line = dict(color = "black", width = 0.5), label = labels, color = "blue"),
+                    link = dict(source = sources, target = targets, value = values)
+                )])
+                fig_sankey.update_layout(title_text="Trajectory Branching Audit", font_size=10, height=500, paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e")
+                st.plotly_chart(fig_sankey, use_container_width=True)
+                st.info("Sankey visualization of the decision flow, contrasting chosen paths against the strongest rejected alternatives.")
 
                 st.divider()
                 st.markdown("#### Narrative Trajectory: Tension vs. Utility")
