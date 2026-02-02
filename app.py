@@ -363,6 +363,12 @@ def main():
             trace_content = content[1].strip() if len(content) > 1 else "Story logic applied."
             joint_action = scene['action']
 
+            # Build Rejection Rows for Research Audit
+            rejection_rows = ""
+            for r in scene['rejections'][:3]:
+                formatted_actions = ", ".join([f"{c}: {a.replace('_', ' ')}" for c, a in r['action'].items()])
+                rejection_rows += f"<tr><td>{formatted_actions}</td><td>{r['prob']*100:.1f}%</td><td>{r['reason']}</td></tr>"
+
             # Render Manuscript Card
             st.markdown(f"""
 <div class="manuscript-card">
@@ -392,7 +398,7 @@ def main():
 </tr>
 </thead>
 <tbody>
-{"".join([f"<tr><td>{', '.join([f'{c}: {a.replace('_', ' ')}' for c, a in r['action'].items()])}</td><td>{r['prob']*100:.1f}%</td><td>{r['reason']}</td></tr>" for r in scene['rejections'][:3]])}
+{rejection_rows}
 </tbody>
 </table>
 
