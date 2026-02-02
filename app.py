@@ -356,6 +356,9 @@ def main():
         ep = st.session_state.current_episode
         st.markdown(f"<h2 style='text-align: center; color: #58a6ff; letter-spacing: 0.15em; margin-bottom: 5rem; font-weight: 300;'>YOUR {ep['genre'].upper()} STORY</h2>", unsafe_allow_html=True)
 
+        # Create Name Map for display and charts
+        name_map = {role.capitalize(): name for role, name in ep['characters'].items()}
+
         for scene in ep['scenes']:
             # Resolution
             content = scene['story'].split("[QUANTUM_TRACE]")
@@ -421,9 +424,6 @@ Logic Note: {trace_content}
         with st.container():
             st.subheader("📊 Research Dashboard: Multi-Agent Narrative Telemetry")
             st.markdown("12-Point Analysis Grid for Decision Intelligence Audit.")
-
-            # Create Name Map for Chart Labels
-            name_map = {role.capitalize(): name for role, name in ep['characters'].items()}
 
             # 4x3 Grid for Graphs
             # Row 1
@@ -535,18 +535,21 @@ Logic Note: {trace_content}
             with r4_c2:
                 st.markdown("#### Branching Audit")
                 sources, targets, values, labels = [], [], [], []
-                p_name = name_map.get("Protagonist", "Hero")
-                a_name = name_map.get("Antagonist", "Villain")
+                p_role = "Protagonist"
+                a_role = "Antagonist"
+                p_char_name = name_map.get(p_role, "Hero")
+                a_char_name = name_map.get(a_role, "Villain")
+
                 for i, scene in enumerate(ep['scenes']):
                     labels.append(f"S{i+1}")
                     curr = len(labels) - 1
 
-                    labels.append(f"{p_name[:5]}...")
+                    labels.append(f"{p_char_name[:5]}...")
                     chosen = len(labels) - 1
                     sources.append(curr); targets.append(chosen); values.append(scene['probs'][scene['action_idx']])
 
                     if scene['rejections']:
-                        labels.append(f"{a_name[:5]}?")
+                        labels.append(f"{a_char_name[:5]}?")
                         rej = len(labels) - 1
                         sources.append(curr); targets.append(rej); values.append(scene['rejections'][0]['prob'])
 
