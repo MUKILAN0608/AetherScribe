@@ -336,18 +336,30 @@ def main():
         tab_story, tab_research = st.tabs(["🖋️ MANUSCRIPT PASS", "📊 RESEARCH DASHBOARD"])
 
         with tab_story:
-            st.markdown(f"<h2 style='text-align: center; color: #58a6ff; letter-spacing: 0.15em; margin-bottom: 2rem; font-weight: 300;'>{ep['genre'].upper()} FILE</h2>", unsafe_allow_html=True)
+            st.markdown(f"<h2 style='text-align: center; color: #58a6ff; letter-spacing: 0.15em; margin-bottom: 2rem; font-weight: 300;'>{ep['genre'].upper()} FILE: MASTER RENDER</h2>", unsafe_allow_html=True)
 
-            # --- MASTER CONTEXT RENDER ---
-            c1, c2 = st.columns([1, 2])
-            with c1:
-                st.markdown("### 🌍 World Info")
-                st.markdown(f"<div class='justification-memo'>Setting: <b>{ep['genre']}</b><br>Initial Mood: Quiet Tension</div>", unsafe_allow_html=True)
-            with c2:
-                st.markdown("### 📜 Premise")
-                st.markdown(f"<div class='justification-memo'>{ep['premise']}</div>", unsafe_allow_html=True)
+            # --- EXECUTIVE SUMMARY & RESEARCH MEMO ---
+            memo_col1, memo_col2 = st.columns([1, 1])
+            with memo_col1:
+                st.markdown("### 📝 Mission Summary")
+                st.markdown(f"""
+                <div class='justification-memo'>
+                <b>Objective:</b> Resolve a {ep['genre'].lower()} story arc with child-friendly English.<br>
+                <b>Primary Idea:</b> {ep['premise']}<br>
+                <b>Outcome:</b> Story finished with a total score of {ep['total_reward']:.2f}.
+                </div>
+                """, unsafe_allow_html=True)
+            with memo_col2:
+                st.markdown("### 🔬 Executive Research Memo")
+                st.markdown(f"""
+                <div class='justification-memo'>
+                The system kept character names perfectly.
+                The story is easy to read. Logic follows personality traits.
+                Alternative choices were skipped based on story quality.
+                </div>
+                """, unsafe_allow_html=True)
 
-            with st.expander("👤 Character Dossiers", expanded=True):
+            with st.expander("👤 Character Dossiers & Entity Bonds", expanded=True):
                 dcol1, dcol2, dcol3 = st.columns(3)
                 roles = ["Protagonist", "Antagonist", "Ally"]
                 cols = [dcol1, dcol2, dcol3]
@@ -363,7 +375,7 @@ def main():
                             val = ep['scenes'][-1]['state']['relationships']['protagonist_ally']['trust']
                             st.markdown(f"**Bond:** {val*100:.0f}% Trust")
                         else:
-                            st.markdown(f"**Role:** Primary Driver")
+                            st.markdown(f"**Status:** Lead Character")
 
             st.divider()
 

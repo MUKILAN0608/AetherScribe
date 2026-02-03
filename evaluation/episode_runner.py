@@ -154,5 +154,6 @@ class EpisodeRunner:
             "scenes": episode_log,
             "total_reward": float(total_reward),
             "mode": mode,
-            "traits": trait_vec.tolist()
+            "traits": trait_vec.tolist(),
+            "characters": self.env.director_brief.get("characters", {})
         }
