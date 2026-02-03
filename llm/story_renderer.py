@@ -15,34 +15,36 @@ class StoryRenderer:
         """
         Research Protocol: Uses the LLM to provide deep narrative logic for why specific
         paths were rejected compared to the chosen one.
-        Uses actual character names for clarity.
+        Uses VERY EASY ENGLISH and ONLY character names.
         """
         genre = state['genre']
         characters = state.get('director_brief', {}).get('characters', {})
         name_map = {role.capitalize(): name for role, name in characters.items()}
 
         rejections_summary = []
-        for rej in rejected_actions[:2]: # Analyze top 2 contenders
+        for rej in rejected_actions[:2]: # Analyze top contenders
             rej_text = ", ".join([f"{name_map.get(c, c)}: {a.replace('_', ' ')}" for c, a in rej['action'].items()])
             chosen_text = ", ".join([f"{name_map.get(c, c)}: {a.replace('_', ' ')}" for c, a in chosen_action.items()])
 
             prompt = f"""
-            [RESEARCH AUDIT: NARRATIVE BRANCHING ANALYSIS]
+            [SIMPLE STORY AUDIT: CHOICE ANALYSIS]
             DOMAIN: {genre}
-            CHOSEN PATH: {chosen_text}
-            REJECTED PATH: {rej_text}
-            QUANTUM RATIONALE: {rationale}
+            PATH WE USED: {chosen_text}
+            PATH WE SKIPPED: {rej_text}
+            REASON FOR CHOICE: {rationale}
 
-            TASK: Explain in exactly ONE simple sentence why the REJECTED PATH was logically
-            inferior to the CHOSEN PATH for this specific story moment.
-            Use actual character names. Focus on character motivation and narrative tension.
+            TASK: Explain in exactly ONE very simple sentence why the SKIPPED PATH was not as good
+            as the path we used. Use VERY EASY ENGLISH that a child can understand.
+            Use ONLY character names. NEVER use titles like "Protagonist" or "Antagonist".
+            Focus on what the characters want and how the story feels.
             LANGUAGE: {language}
             """
             try:
+                # Add a retry logic or simple fallback
                 response = self.model.generate_content(prompt).text
                 rejections_summary.append(response.strip())
             except:
-                rejections_summary.append("This path lacked the necessary narrative energy to resolve the current conflict.")
+                rejections_summary.append("This choice was not as interesting for the story.")
 
         return rejections_summary
 
@@ -65,13 +67,11 @@ class StoryRenderer:
         story_text = response.text
 
         # 2. Sequential Summary pass for continuity context
-        # In Decision-First mode, the story_text is already concise, so summary is almost the same.
         summary_prompt = f"Summarize the following narrative result in one concise English sentence:\n\n{story_text}"
         summary_res = self.model.generate_content(summary_prompt).text
         summary = summary_res.strip()
 
         # 3. Semantic Audit pass
-        # This provides the RL feedback loop with a qualitative anchor for policy optimization.
         critique_prompt = f"""
         [NARRATIVE AUDIT PROTOCOL v5.4.2]
         Analyze the following decision result for logical coherence and adherence to the domain.

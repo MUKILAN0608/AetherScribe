@@ -23,21 +23,24 @@ def build_prompt(state, actions, rationale, scene_index, previous_summary=None, 
 STORYTELLING INSTRUCTIONS
 LANGUAGE: {language}
 GENRE: {genre}
+STYLE: VERY EASY ENGLISH (Use simple words, like for a child)
 
 {persona_instruction}
 
-STRICT RULE: Use ONLY the names listed above. Do NOT invent new names. Do NOT use generic titles like "The Protagonist".
+STRICT RULE: Use ONLY the character names listed above. NEVER use role titles like "Protagonist" or "Antagonist".
 
 YOUR TASK:
-1. Write exactly ONE clear, descriptive sentence showing what happens in this scene.
-2. The scene MUST follow these specific character actions: {actions}
-3. The story must follow the logic of this reason: {rationale}
-4. Keep the story consistent with what happened before: {previous_summary if previous_summary else "This is the start of the story."}
+1. Write exactly ONE clear, very simple sentence showing what happens in this scene.
+2. Use very EASY ENGLISH and basic vocabulary.
+3. Use ONLY character names. Do NOT use roles like "The Protagonist".
+4. The scene MUST follow these specific actions: {actions}
+5. The story must follow the logic of this reason: {rationale}
+6. Keep the story consistent with what happened before: {previous_summary if previous_summary else "This is the start of the story."}
 
 FORMAT:
 [SCENE {scene_index}]
-RESULT: <Your 1-sentence story update here>
+RESULT: <Your very simple 1-sentence story update here>
 
 [QUANTUM_TRACE]
-<A simple, 1-sentence explanation of why the story took this turn based on the characters' goals and the current mood.>
+<A simple, one-sentence explanation of why this happened using easy words.>
 """
