@@ -41,7 +41,7 @@ class ExplanationEngine:
 
                 lines.append(f"Because they are very **{top_trait.replace('_', ' ')}**, they naturally chose an action that fits who they are.")
 
-        # 4. Simple Tension Explanation
+        # 4. Simple Feeling Pass
         tension = state_vec[0]
         if tension > 0.7:
             tension_desc = "The story is very exciting and fast right now!"
