@@ -12,7 +12,7 @@ class ExplanationEngine:
 
         actions_desc = []
         for role, action in joint_action.items():
-            char_name = name_map.get(role, role) if name_map else role
+            char_name = name_map.get(role.capitalize(), role) if name_map else role
             actions_desc.append(f"**{char_name}** chose to {action.lower().replace('_', ' ')}")
 
         lines.append(f"\n**What happened:** " + " and ".join(actions_desc) + ".")
@@ -23,7 +23,7 @@ class ExplanationEngine:
             for rej in rejections[:2]:
                 rej_actions = []
                 for role, act in rej['action'].items():
-                    name = name_map.get(role, role) if name_map else role
+                    name = name_map.get(role.capitalize(), role) if name_map else role
                     rej_actions.append(f"{name}: {act.replace('_', ' ')}")
                 lines.append(f"- **Choice {rej['index']}** ({', '.join(rej_actions)}): {rej['reason']}")
 
@@ -31,7 +31,7 @@ class ExplanationEngine:
         if attribution and agents:
             top_role = max(attribution, key=attribution.get)
             top_agent_obj = agents.get(top_role.lower())
-            top_char_name = name_map.get(top_role, top_role) if name_map else top_role
+            top_char_name = name_map.get(top_role.capitalize(), top_role) if name_map else top_role
 
             lines.append(f"\n**The Leader:** **{top_char_name}** was the main person making things happen.")
 
@@ -41,7 +41,7 @@ class ExplanationEngine:
 
                 lines.append(f"Because they are very **{top_trait.replace('_', ' ')}**, they naturally chose an action that fits who they are.")
 
-        # 4. Simple Feeling Pass
+        # 4. Simple Tension Explanation
         tension = state_vec[0]
         if tension > 0.7:
             tension_desc = "The story is very exciting and fast right now!"

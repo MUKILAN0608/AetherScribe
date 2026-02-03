@@ -47,7 +47,7 @@ class StoryRenderer:
 
         return rejections_summary
 
-    def render_scene(self, state, actions, rationale, previous_summary=None, language="English", temperature=0.8):
+    def render_scene(self, state, actions, rationale, previous_summary=None, language="English", temperature=0.8, mode="Short Story"):
         """
         Renders a story scene focusing on decision intelligence (v5.4.2).
         Returns: (story_text, summary, prompt_trace, coherence_score)
@@ -55,7 +55,7 @@ class StoryRenderer:
         scene_index = state.get('step', 0)
 
         # 1. Primary Scene Generation (Decision-First Protocol)
-        prompt = build_prompt(state, actions, rationale, scene_index, previous_summary, language)
+        prompt = build_prompt(state, actions, rationale, scene_index, previous_summary, language, mode)
         response = self.model.generate_content(
             prompt,
             generation_config=genai.types.GenerationConfig(

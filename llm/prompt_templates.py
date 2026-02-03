@@ -1,4 +1,4 @@
-def build_prompt(state, actions, rationale, scene_index, previous_summary=None, language="English"):
+def build_prompt(state, actions, rationale, scene_index, previous_summary=None, language="English", mode="Short Story"):
     """
     Simplified Storytelling Architect (v5.5.0).
     Enforces strict character naming and clear, simple story progression.
