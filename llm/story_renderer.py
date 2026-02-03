@@ -40,7 +40,6 @@ class StoryRenderer:
             LANGUAGE: {language}
             """
             try:
-                # Add a retry logic or simple fallback
                 response = self.model.generate_content(prompt).text
                 rejections_summary.append(response.strip())
             except:
@@ -48,7 +47,7 @@ class StoryRenderer:
 
         return rejections_summary
 
-    def render_scene(self, state, actions, rationale, previous_summary=None, language="English", temperature=0.8, mode="Short Story"):
+    def render_scene(self, state, actions, rationale, previous_summary=None, language="English", temperature=0.8):
         """
         Renders a story scene focusing on decision intelligence (v5.4.2).
         Returns: (story_text, summary, prompt_trace, coherence_score)

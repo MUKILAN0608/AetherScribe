@@ -94,8 +94,8 @@ st.markdown("""
 
 .manuscript-prose {
     font-family: 'Crimson Pro', serif;
-    font-size: 2rem;
-    line-height: 1.5;
+    font-size: 2.2rem;
+    line-height: 1.6;
     color: #f0f6fc;
     font-style: italic;
     margin: 2rem 0;
@@ -110,7 +110,7 @@ st.markdown("""
 
 .audit-header {
     font-family: 'Inter', sans-serif;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-weight: 700;
     text-transform: uppercase;
     color: #58a6ff;
@@ -122,31 +122,32 @@ st.markdown("""
 .selection-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     margin-bottom: 2rem;
     background-color: #0d1117;
     border-radius: 6px;
 }
 .selection-table th {
-    padding: 10px;
+    padding: 12px;
     color: #8b949e;
     background-color: #161b22;
     border-bottom: 1px solid #30363d;
     text-align: left;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
 }
 .selection-table td {
-    padding: 12px 10px;
+    padding: 14px 12px;
     border-bottom: 1px solid #30363d;
     color: #c9d1d9;
 }
 
 .logic-block {
-    padding: 1.2rem;
+    padding: 1.5rem;
     background-color: #0d1117;
     border-left: 4px solid #58a6ff;
     margin: 1.5rem 0;
-    font-size: 0.95rem;
+    font-size: 1.05rem;
+    line-height: 1.6;
 }
 
 .status-bar {
@@ -154,34 +155,34 @@ st.markdown("""
     justify-content: center;
     gap: 3rem;
     margin-bottom: 3rem;
-    padding: 1rem;
+    padding: 1.2rem;
     background-color: #161b22;
     border: 1px solid #30363d;
-    border-radius: 8px;
+    border-radius: 10px;
 }
 .status-item {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
     color: #8b949e;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 .active-dot {
-    height: 8px;
-    width: 8px;
+    height: 10px;
+    width: 10px;
     background-color: #3fb950;
     border-radius: 50%;
-    box-shadow: 0 0 10px #3fb950;
+    box-shadow: 0 0 12px #3fb950;
 }
 
 .technical-log {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     background-color: #0d1117;
     color: #3fb950;
-    padding: 1.2rem;
+    padding: 1.5rem;
     border-radius: 6px;
     border: 1px solid #30363d;
 }
@@ -361,7 +362,7 @@ def main():
 <table class="selection-table">
 <thead>
 <tr>
-<th>What could have happened</th>
+<th>Possible Choice</th>
 <th>Likelihood</th>
 <th>Why it was skipped</th>
 </tr>
@@ -383,8 +384,9 @@ Logic Note: {trace_content}
 
         with tab_research:
             st.subheader("📊 Research Dashboard: 12-Point Trajectory Analysis")
-            st.markdown("Detailed data showing character choices and story world dynamics.")
+            st.markdown("Broad telemetry grid showing character logic and story world dynamics.")
 
+            # 4-Column x 3-Row Grid for Graphs
             # Row 1
             r1_c1, r1_c2, r1_c3, r1_c4 = st.columns(4)
             steps = [f"S{s['step']+1}" for s in ep['scenes']]
@@ -395,7 +397,7 @@ Logic Note: {trace_content}
             with r1_c1:
                 st.markdown("#### Story Tension")
                 fig_tension = go.Figure(data=go.Scatter(x=steps, y=tension_vals, mode='lines+markers', line=dict(color='#58a6ff', width=5)))
-                fig_tension.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=500, margin=dict(l=10,r=10,t=40,b=40), yaxis_range=[0,1], font_size=12)
+                fig_tension.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=650, margin=dict(l=10,r=10,t=40,b=40), yaxis_range=[0,1], font_size=14)
                 st.plotly_chart(fig_tension, use_container_width=True)
 
             with r1_c2:
@@ -404,7 +406,7 @@ Logic Note: {trace_content}
                 agent_names = [name_map.get(a, a) for a in agents_roles]
                 vals = [ep['scenes'][-1]['attribution'][a] for a in agents_roles]
                 fig2 = go.Figure(data=[go.Pie(labels=agent_names, values=vals, hole=.4, marker=dict(colors=['#58a6ff', '#f85149', '#3fb950']))])
-                fig2.update_layout(showlegend=True, paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=500, margin=dict(l=10,r=10,t=40,b=40), legend=dict(orientation="h", yanchor="bottom", y=-0.1, xanchor="center", x=0.5), font_size=12)
+                fig2.update_layout(showlegend=True, paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=650, margin=dict(l=10,r=10,t=40,b=40), legend=dict(orientation="h", yanchor="bottom", y=-0.1, xanchor="center", x=0.5), font_size=14)
                 st.plotly_chart(fig2, use_container_width=True)
 
             with r1_c3:
@@ -413,14 +415,14 @@ Logic Note: {trace_content}
                 for s in ep['scenes']:
                     sorted_probs = sorted(s['probs'], reverse=True)
                     gaps.append(sorted_probs[0] - sorted_probs[1])
-                fig_gap = go.Figure(data=go.Scatter(x=steps, y=gaps, fill='tozeroy', line=dict(color='#bc8cff', width=4)))
-                fig_gap.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=500, margin=dict(l=10,r=10,t=40,b=40), font_size=12)
+                fig_gap = go.Figure(data=go.Scatter(x=steps, y=gaps, fill='tozeroy', line=dict(color='#bc8cff', width=5)))
+                fig_gap.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=650, margin=dict(l=10,r=10,t=40,b=40), font_size=14)
                 st.plotly_chart(fig_gap, use_container_width=True)
 
             with r1_c4:
-                st.markdown("#### Action Certainty")
-                fig_entropy = go.Figure(data=go.Scatter(x=steps, y=entropy_vals, mode='lines+markers', line=dict(color='#d29922', width=4)))
-                fig_entropy.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=500, margin=dict(l=10,r=10,t=40,b=40), font_size=12)
+                st.markdown("#### Choice Certainty")
+                fig_entropy = go.Figure(data=go.Scatter(x=steps, y=entropy_vals, mode='lines+markers', line=dict(color='#d29922', width=5)))
+                fig_entropy.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=650, margin=dict(l=10,r=10,t=40,b=40), font_size=14)
                 st.plotly_chart(fig_entropy, use_container_width=True)
 
             # Row 2
@@ -428,7 +430,7 @@ Logic Note: {trace_content}
             with r2_c1:
                 st.markdown("#### Story Fit")
                 fig_reward = go.Figure(data=go.Bar(x=steps, y=reward_vals, marker_color='#3fb950'))
-                fig_reward.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=500, margin=dict(l=10,r=10,t=40,b=40), font_size=12)
+                fig_reward.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=650, margin=dict(l=10,r=10,t=40,b=40), font_size=14)
                 st.plotly_chart(fig_reward, use_container_width=True)
 
             with r2_c2:
@@ -436,7 +438,7 @@ Logic Note: {trace_content}
                 features = ["Aggro", "Strat", "Sneak", "Loyal"]
                 sensitivity_vals = ep['scenes'][-1]['sensitivity']
                 fig_sens = go.Figure(data=[go.Bar(x=features, y=sensitivity_vals, marker_color='#ff7b72')])
-                fig_sens.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=500, margin=dict(l=10,r=10,t=40,b=40), font_size=12)
+                fig_sens.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=650, margin=dict(l=10,r=10,t=40,b=40), font_size=14)
                 st.plotly_chart(fig_sens, use_container_width=True)
 
             with r2_c3:
@@ -448,7 +450,7 @@ Logic Note: {trace_content}
                 fig_rel = go.Figure()
                 fig_rel.add_trace(go.Scatter(x=steps, y=trust_vals, name=f"Trust: {l_name_rel}", line=dict(color='#3fb950', width=4)))
                 fig_rel.add_trace(go.Scatter(x=steps, y=enmity_vals, name=f"Hate: {a_name_rel}", line=dict(color='#f85149', width=4)))
-                fig_rel.update_layout(showlegend=True, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=500, margin=dict(l=10,r=10,t=40,b=40), legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5), font_size=12)
+                fig_rel.update_layout(showlegend=True, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=650, margin=dict(l=10,r=10,t=40,b=40), legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5), font_size=14)
                 st.plotly_chart(fig_rel, use_container_width=True)
 
             with r2_c4:
@@ -457,25 +459,25 @@ Logic Note: {trace_content}
                 for s in ep['scenes']:
                     attr_data.append([s['attribution'][c] for c in agents_roles])
                 fig_heat = px.imshow(np.array(attr_data).T, x=steps, y=agent_names, color_continuous_scale="Viridis")
-                fig_heat.update_layout(coloraxis_showscale=False, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=500, margin=dict(l=10,r=10,t=40,b=40), font_size=12)
+                fig_heat.update_layout(coloraxis_showscale=True, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=650, margin=dict(l=10,r=10,t=40,b=40), font_size=14)
                 st.plotly_chart(fig_heat, use_container_width=True)
 
             # Row 3
             r3_c1, r3_c2, r3_c3, r3_c4 = st.columns(4)
             with r3_c1:
-                st.markdown("#### Plot Variety")
+                st.markdown("#### Choice Variety")
                 fig_probs = go.Figure(data=[go.Bar(x=[f"O{i+1}" for i in range(len(ep['scenes'][-1]['probs']))], y=ep['scenes'][-1]['probs'], marker_color=['#58a6ff' if i == ep['scenes'][-1]['action_idx'] else '#30363d' for i in range(len(ep['scenes'][-1]['probs']))])])
-                fig_probs.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=500, margin=dict(l=10,r=10,t=40,b=40), font_size=12)
+                fig_probs.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=650, margin=dict(l=10,r=10,t=40,b=40), font_size=14)
                 st.plotly_chart(fig_probs, use_container_width=True)
 
             with r3_c2:
-                st.markdown("#### Narrative Shape")
+                st.markdown("#### Logic Path Map")
                 if HAS_PCA and len(ep['scenes']) >= 2:
                     h = [[s['state']['tension'], s['reward'], s['entropy'], s['risk']] for s in ep['scenes']]
                     pca = PCA(n_components=2); coords = pca.fit_transform(h)
                     fig3 = px.scatter(x=coords[:,0], y=coords[:,1], text=steps)
-                    fig3.update_traces(marker=dict(size=20, color='#58a6ff', line=dict(width=2, color='white')), textposition='top center')
-                    fig3.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=500, margin=dict(l=10,r=10,t=40,b=40), font_size=12)
+                    fig3.update_traces(marker=dict(size=25, color='#58a6ff', line=dict(width=3, color='white')), textposition='top center')
+                    fig3.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=650, margin=dict(l=10,r=10,t=40,b=40), font_size=14)
                     st.plotly_chart(fig3, use_container_width=True)
                 else: st.info("No data.")
 
@@ -496,14 +498,14 @@ Logic Note: {trace_content}
                         rej = len(labels) - 1
                         sources.append(curr); targets.append(rej); values.append(scene['rejections'][0]['prob'])
                 fig_sankey = go.Figure(data=[go.Sankey(node = dict(pad = 15, thickness = 20, label = labels, color = "#58a6ff", line=dict(color="white", width=0.5)), link = dict(source = sources, target = targets, value = values, color = "rgba(88, 166, 255, 0.4)"))])
-                fig_sankey.update_layout(font_size=10, height=500, paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", margin=dict(l=10,r=10,t=40,b=40))
+                fig_sankey.update_layout(font_size=12, height=650, paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", margin=dict(l=10,r=10,t=40,b=40))
                 st.plotly_chart(fig_sankey, use_container_width=True)
 
             with r3_c4:
-                st.markdown("#### Pressure Map")
+                st.markdown("#### Tension-Utility")
                 fig_traj = px.scatter(x=tension_vals, y=reward_vals, trendline="ols", text=steps)
-                fig_traj.update_traces(marker=dict(size=18, color='#58a6ff', symbol='diamond'), textposition='top center')
-                fig_traj.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=500, margin=dict(l=10,r=10,t=40,b=40), font_size=12)
+                fig_traj.update_traces(marker=dict(size=20, color='#58a6ff', symbol='diamond'), textposition='top center')
+                fig_traj.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color="#8b949e", height=650, margin=dict(l=10,r=10,t=40,b=40), font_size=14)
                 st.plotly_chart(fig_traj, use_container_width=True)
 
         st.divider()
