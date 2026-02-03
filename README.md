@@ -11,7 +11,7 @@
 
 ## ⚛️ Technical Stack
 - **Quantum Core**: PennyLane Variational Quantum Circuits (VQC) with character-trait biasing.
-- **Narrative Engine**: Gemini-powered high-fidelity rendering with stylistic consistency.
+- **Narrative Engine**: Gemini-powered high-fidelity rendering with stylistic consistency.                                           
 - **Decision Governance**: Automated rejection logic and influence attribution across multi-agent systems.
 - **Research Dashboard**: Elite "Black Edition" Streamlit interface with high-fidelity Plotly telemetry.
 
