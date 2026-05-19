@@ -6,7 +6,12 @@
 
 This repository (`quantum_rl`) contains the Streamlit application, quantum policy, environment, LLM renderer, and research dashboard. The interactive UI runs locally via `streamlit run app.py`.
 
-**Stack:** [PennyLane](https://pennylane.ai/) · [Streamlit](https://streamlit.io/) · [Google Gemini](https://ai.google.dev/) (with graceful fallback when no API key is set)
+### Technical stack
+
+- **Quantum core** — [PennyLane](https://pennylane.ai/) variational quantum circuits (VQC) with character-trait biasing
+- **Narrative engine** — [Google Gemini](https://ai.google.dev/) scene rendering with stylistic consistency (graceful fallback when no API key is set)
+- **Decision governance** — Automated rejection logic and influence attribution across multi-agent systems
+- **Research dashboard** — [Streamlit](https://streamlit.io/) interface with Plotly telemetry
 
 ---
 
