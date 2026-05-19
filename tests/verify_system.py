@@ -12,9 +12,28 @@ from explainability.explanation_engine import ExplanationEngine
 from evaluation.episode_runner import EpisodeRunner
 
 class MockRenderer:
-    """Mocks the LLM renderer for integration testing (v5.4.2)."""
-    def render_scene(self, state, actions, rationale, previous_summary=None, language="English", temperature=0.8, mode="Short Story"):
-        story = f"MOCK STORY SCENE in {language} (Mode: {mode}) for actions {actions} at tension {state['tension']:.2f}\n[QUANTUM_TRACE]\nMOCK TRACE"
+    """Mocks the LLM renderer for integration testing."""
+
+    def analyze_rejections(self, state, chosen_action, rejected_actions, rationale, language="English"):
+        return [r.get("reason", "Dominated by policy posterior.") for r in rejected_actions[:2]]
+
+    def render_scene(
+        self,
+        state,
+        actions,
+        rationale,
+        previous_summary=None,
+        language="English",
+        temperature=0.8,
+        mode="Short Story",
+        lite_mode=False,
+    ):
+        step = state.get("step", 0)
+        story = (
+            f"[SCENE {step}]\nNARRATIVE:\n"
+            f"Mock narrative in {language} ({mode}) for {actions} at tension {state['tension']:.2f}.\n\n"
+            f"[QUANTUM_TRACE]\nMock decision trace."
+        )
         summary = "Mock summary for continuity."
         prompt_trace = "MOCK PROMPT TRACE"
         coherence_score = 0.95
@@ -41,7 +60,9 @@ def test_integration():
 
     # 2. Run
     print("Executing v5.4.2 research trajectory...")
-    result = runner.run_episode(verbose=False, language="English", mode="Short Story")
+    result = runner.run_episode(
+        verbose=False, language="English", mode="Short Story", render_depth="fast"
+    )
     episode_log = result["scenes"]
 
     # 3. Assertions
@@ -57,7 +78,7 @@ def test_integration():
         assert "rejections" in entry
         assert "attribution" in entry
         assert "sensitivity" in entry
-        assert entry["story"].startswith("MOCK STORY SCENE")
+        assert "NARRATIVE:" in entry["story"]
         print(f"Node {entry['step']} verified: Audit trail and telemetry captured.")
 
     print("\n[SUCCESS] Integration test passed! AetherScribe Lab v5.4.2 is fully operational.")

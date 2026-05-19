@@ -65,11 +65,11 @@ class StoryEnvironment:
 
     def _update_relationships(self, actions):
         """
-        Interpersonal Physics: Evolves trust and enmity based on joint actions.
+        Interpersonal Physics: Evolves trust and enmity based on joint actions (env keys).
         """
-        p_act = actions.get("Protagonist")
-        a_act = actions.get("Antagonist")
-        l_act = actions.get("Ally")
+        p_act = actions.get("Protagonist") or actions.get("protagonist")
+        a_act = actions.get("Antagonist") or actions.get("antagonist")
+        l_act = actions.get("Ally") or actions.get("ally")
 
         # P-L Relationship (Trust building/erosion)
         if l_act in ["provide_critical_intelligence", "execute_support_maneuver"]:

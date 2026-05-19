@@ -1,57 +1,78 @@
 class ExplanationEngine:
-    def generate_explanation(self, state_vec, joint_action, rejections=None, attribution=None, agents=None, name_map=None):
-        """
-        Generates a very simple explanation for children or non-experts.
-        Uses actual character names.
-        """
+    """Explainable decisions using character names only — never role labels."""
+
+    def _name_for(self, role_key: str, name_map: dict) -> str:
+        if not name_map:
+            return role_key
+        return (
+            name_map.get(role_key)
+            or name_map.get(role_key.capitalize())
+            or name_map.get(role_key.lower())
+            or role_key
+        )
+
+    def generate_explanation(
+        self,
+        state_vec,
+        joint_action,
+        rejections=None,
+        attribution=None,
+        agents=None,
+        name_map=None,
+    ):
+        name_map = name_map or {}
+        tension = float(state_vec[0]) if state_vec is not None and len(state_vec) else 0.5
+
         lines = []
-        lines.append("### 🖋️ STORY DECISION: WHY THIS HAPPENED")
+        lines.append(
+            f"Quantum policy measurement at narrative tension {tension:.2f} "
+            f"collapsed to the following joint action."
+        )
 
-        # 1. Simple Conflict Description
-        lines.append("The story was at a choice point. Many different things could have happened, but the characters' feelings pushed the story in one way.")
-
-        actions_desc = []
+        chosen_parts = []
         for role, action in joint_action.items():
-            char_name = name_map.get(role.capitalize(), role) if name_map else role
-            actions_desc.append(f"**{char_name}** chose to {action.lower().replace('_', ' ')}")
+            name = self._name_for(role, name_map)
+            chosen_parts.append(f"{name} — {action.replace('_', ' ')}")
+        lines.append("Measured outcome: " + "; ".join(chosen_parts) + ".")
 
-        lines.append(f"\n**What happened:** " + " and ".join(actions_desc) + ".")
-
-        # 2. Rejection Analysis (Simplified)
         if rejections:
-            lines.append("\n#### ❌ WHY OTHER CHOICES WERE SKIPPED")
-            for rej in rejections[:2]:
-                rej_actions = []
-                for role, act in rej['action'].items():
-                    name = name_map.get(role.capitalize(), role) if name_map else role
-                    rej_actions.append(f"{name}: {act.replace('_', ' ')}")
-                lines.append(f"- **Choice {rej['index']}** ({', '.join(rej_actions)}): {rej['reason']}")
+            lines.append("Superposed branches not selected (posterior mass):")
+            for rej in rejections[:3]:
+                alt_parts = []
+                for role, act in rej["action"].items():
+                    name = self._name_for(role, name_map)
+                    alt_parts.append(f"{name} — {act.replace('_', ' ')}")
+                lines.append(
+                    f"  · Branch P={rej['prob']:.0%}: "
+                    + "; ".join(alt_parts)
+                    + f". {rej.get('reason', 'Suppressed by VQC interference.')}"
+                )
 
-        # 3. Character Motivation
-        if attribution and agents:
+        if attribution:
             top_role = max(attribution, key=attribution.get)
-            top_agent_obj = agents.get(top_role.lower())
-            top_char_name = name_map.get(top_role.capitalize(), top_role) if name_map else top_role
+            driver = self._name_for(top_role, name_map)
+            influence = attribution.get(top_role, 0.0)
+            lines.append(
+                f"Trait-channel attribution peaks on {driver} "
+                f"(quantum influence {influence:.0%})."
+            )
 
-            lines.append(f"\n**The Leader:** **{top_char_name}** was the main person making things happen.")
+            if agents:
+                agent_obj = agents.get(top_role.lower())
+                if agent_obj and hasattr(agent_obj, "traits"):
+                    traits = agent_obj.traits
+                    trait = max(traits, key=traits.get)
+                    lines.append(
+                        f"{driver}'s dominant disposition — {trait.replace('_', ' ')} — "
+                        f"aligned with this choice."
+                    )
 
-            if top_agent_obj and hasattr(top_agent_obj, 'traits'):
-                traits = top_agent_obj.traits
-                top_trait = max(traits, key=traits.get)
-
-                lines.append(f"Because they are very **{top_trait.replace('_', ' ')}**, they naturally chose an action that fits who they are.")
-
-        # 4. Simple Tension Explanation
-        tension = state_vec[0]
         if tension > 0.7:
-            tension_desc = "The story is very exciting and fast right now!"
+            pressure = "The story is in a high-pressure climax phase."
         elif tension < 0.3:
-            tension_desc = "Everything is calm and quiet."
+            pressure = "The story is establishing setting and relationships."
         else:
-            tension_desc = "The story is getting more interesting."
-
-        lines.append(f"\n**The Feeling:** {tension_desc}")
-
-        lines.append(f"\n**Result:** This choice makes the most sense for the story.")
+            pressure = "The story is escalating toward a turning point."
+        lines.append(pressure)
 
         return "\n".join(lines)

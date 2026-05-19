@@ -100,7 +100,7 @@ def main():
     )
 
     # 5. Archive Data to SQL Persistence
-    db.save_episode(brief["genre"], brief["initial_story_premise"], result["total_tension"], result["scenes"])
+    db.save_episode(brief["genre"], brief["initial_story_premise"], result["total_reward"], result["scenes"])
     print(f"\n[SUCCESS] Research trajectory archived to: aetherscribe_lab.db")
 
 if __name__ == "__main__":
