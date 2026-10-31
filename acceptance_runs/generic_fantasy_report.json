@@ -1,0 +1,79 @@
+{
+  "provider": "local-endpoint",
+  "model": "models/OLMoE-1B-7B-0125-Instruct.Q4_K_M.gguf",
+  "endpoint": "http://127.0.0.1:8081/v1",
+  "episode_id": 29,
+  "story_id": "acceptance-generic-fantasy-20261101-r3",
+  "requested": 6,
+  "planned": 6,
+  "accepted": 1,
+  "failed": 5,
+  "status": "partial",
+  "ending": {
+    "valid": false,
+    "issues": [
+      "final_scene_lacks_resolution_signal"
+    ]
+  },
+  "failures": [
+    {
+      "scene_index": 1,
+      "issues": [
+        "scene_above_maximum_length"
+      ],
+      "retry_count": 3,
+      "provider_error": null,
+      "finish_reason": "stop",
+      "output_tokens": 229
+    },
+    {
+      "scene_index": 2,
+      "issues": [
+        "scene_above_maximum_length"
+      ],
+      "retry_count": 3,
+      "provider_error": null,
+      "finish_reason": "stop",
+      "output_tokens": 205
+    },
+    {
+      "scene_index": 3,
+      "issues": [
+        "truncated_output",
+        "scene_above_maximum_length",
+        "provider_truncated_output"
+      ],
+      "retry_count": 3,
+      "provider_error": null,
+      "finish_reason": "length",
+      "output_tokens": 256
+    },
+    {
+      "scene_index": 4,
+      "issues": [
+        "truncated_output",
+        "scene_above_maximum_length",
+        "provider_truncated_output"
+      ],
+      "retry_count": 3,
+      "provider_error": null,
+      "finish_reason": "length",
+      "output_tokens": 256
+    },
+    {
+      "scene_index": 5,
+      "issues": [
+        "truncated_output",
+        "scene_above_maximum_length",
+        "provider_truncated_output"
+      ],
+      "retry_count": 3,
+      "provider_error": null,
+      "finish_reason": "length",
+      "output_tokens": 256
+    }
+  ],
+  "export": "C:\\Users\\Mukil\\quantum_rl\\acceptance_runs\\generic_fantasy_manuscript.txt",
+  "manual_inspection": true,
+  "inspection_notes": "Inspected the complete exported file. It contains only one accepted scene; all other planned scenes failed validation, so the manuscript is not a complete story."
+}

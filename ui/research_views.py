@@ -38,6 +38,7 @@ from ui.manuscript import (
 
 def render_kpi_strip(ep: dict, extended: bool = False):
     m = episode_metrics(ep)
+    coherence_label = f"{m['mean_coherence']:.2f}" if m["mean_coherence"] is not None else "—"
     scenes = ep["scenes"]
     mean_entropy = float(np.mean([s.get("entropy", 0) for s in scenes])) if scenes else 0.0
     mean_risk = float(np.mean([s.get("risk", 0) for s in scenes])) if scenes else 0.0
@@ -53,7 +54,7 @@ def render_kpi_strip(ep: dict, extended: bool = False):
         st.markdown(
             f"""
 <div class="kpi-grid-extended">
-  <div class="kpi-card accent"><div class="kpi-value">{m['mean_coherence']:.2f}</div><div class="kpi-label">Coherence</div></div>
+    <div class="kpi-card accent"><div class="kpi-value">{coherence_label}</div><div class="kpi-label">Coherence</div></div>
   <div class="kpi-card accent"><div class="kpi-value">{m['cumulative_utility']:.2f}</div><div class="kpi-label">Utility</div></div>
   <div class="kpi-card"><div class="kpi-value">{m['final_tension']:.2f}</div><div class="kpi-label">Tension</div></div>
   <div class="kpi-card quantum"><div class="kpi-value quantum">{mean_posterior:.0%}</div><div class="kpi-label">Mean posterior</div></div>
@@ -63,12 +64,11 @@ def render_kpi_strip(ep: dict, extended: bool = False):
 """,
             unsafe_allow_html=True,
         )
-        return
 
     st.markdown(
         f"""
 <div class="kpi-grid">
-  <div class="kpi-card"><div class="kpi-value">{m['mean_coherence']:.2f}</div><div class="kpi-label">Coherence</div></div>
+    <div class="kpi-card"><div class="kpi-value">{coherence_label}</div><div class="kpi-label">Coherence</div></div>
   <div class="kpi-card"><div class="kpi-value">{m['cumulative_utility']:.2f}</div><div class="kpi-label">Utility</div></div>
   <div class="kpi-card"><div class="kpi-value">{m['final_tension']:.2f}</div><div class="kpi-label">Tension</div></div>
   <div class="kpi-card"><div class="kpi-value">{m['scene_count']}</div><div class="kpi-label">Scenes</div></div>
@@ -78,13 +78,77 @@ def render_kpi_strip(ep: dict, extended: bool = False):
     )
 
 
+def render_memory_panel(ep: dict):
+    """Display story-scoped structured memory and retrieval diagnostics."""
+    records = ep.get("memory", [])
+    st.markdown("### Persistent story memory")
+    if not records:
+        st.info("No active memory records are available for this story.")
+        return
+    st.caption(
+        f"Story scope: `{ep.get('story_id', 'unknown')}` · "
+        f"{len(records)} active records shown"
+    )
+    for record in records:
+        provenance = (
+            f"scene {record.get('scene_index', '?')} · "
+            f"{record.get('origin', 'unknown')} · "
+            f"confidence {record.get('confidence', 0):.2f}"
+        )
+        st.markdown(
+            f"**{record.get('category', 'memory')}** — "
+            f"{record.get('content', '')}  \n"
+            f"<small>{provenance}</small>",
+            unsafe_allow_html=True,
+        )
+
+
+def render_secret_panel(ep: dict):
+    """Display redacted story-scoped secret gate diagnostics."""
+    scenes = ep.get("scenes", [])
+    decisions = [
+        decision
+        for scene in scenes
+        for decision in scene.get("secret_gate", {}).get("decisions", [])
+        if "secret_id" in decision
+    ]
+    violations = sum(
+        len(scene.get("secret_validation", {}).get("violations", []))
+        for scene in scenes
+    )
+    st.markdown("### Secret reveal gate")
+    if not decisions and not violations:
+        st.info("No secret ledger decisions were recorded for this story.")
+        return
+    denied = sum(1 for decision in decisions if not decision.get("allowed"))
+    st.caption(
+        f"Evaluated: {len(decisions)} · denied: {denied} · "
+        f"prose violations: {violations} · policy: fail-closed"
+    )
+    for decision in decisions:
+        status = "eligible" if decision.get("allowed") else "concealed"
+        reasons = ", ".join(decision.get("reasons", [])) or "authorized"
+        st.markdown(
+            f"**{html.escape(decision['secret_id'])}** — {status}  \n"
+            f"<small>{html.escape(reasons)}</small>",
+            unsafe_allow_html=True,
+        )
+
+
 def render_entities(ep: dict):
-    name_map = build_name_map(ep["characters"])
-    rel = ep["scenes"][-1]["state"]["relationships"]
+    name_map = build_name_map(ep.get("characters") or {})
+    scenes = ep.get("scenes") or []
+    last_state = next(
+        (scene.get("state") or {} for scene in reversed(scenes) if scene.get("state")),
+        {},
+    )
+    rel = last_state.get("relationships") or {}
     cards = []
     for role in ("protagonist", "antagonist", "ally"):
         display = name_map.get(role, "—")
-        note = relationship_note(role.capitalize(), rel)
+        note = relationship_note(role.capitalize(), rel) if rel else (
+            "Narrative driver" if role == "protagonist" else "Relationship details unavailable"
+        )
         cards.append(
             f'<div class="entity-card">'
             f'<div class="entity-name">{html.escape(display)}</div>'
@@ -94,6 +158,7 @@ def render_entities(ep: dict):
 
 
 def _render_decision_card(rec: dict):
+    coherence_label = f"{rec['coherence']:.2f}" if rec["coherence"] is not None else "—"
     chosen_html = "".join(
         f'<div class="chosen-action"><b>{html.escape(n)}</b> — {html.escape(a)}</div>'
         for n, a in rec["chosen"]
@@ -133,7 +198,7 @@ def _render_decision_card(rec: dict):
   <div class="decision-section-title">Alternatives not selected</div>
   {alt_html if alt_html else '<p style="color:#6e7681;font-size:0.85rem;">—</p>'}
   <div class="decision-metrics">
-    <span>Coherence {rec['coherence']:.2f}</span>
+    <span>Coherence {coherence_label}</span>
     <span>Tension {rec['tension']:.2f}</span>
     <span>Utility {rec['utility']:.2f}</span>
     <span>Clarity {rec['clarity']:.2f}</span>
@@ -146,6 +211,7 @@ def _render_decision_card(rec: dict):
 
 
 def _render_quantum_explain_panel(rec: dict):
+    coherence_label = f"{rec['coherence']:.2f}" if rec["coherence"] is not None else "—"
     chosen_html = "".join(
         f'<div class="chosen-action"><b>{html.escape(n)}</b> — {html.escape(a)}</div>'
         for n, a in rec["chosen"]
@@ -180,7 +246,7 @@ def _render_quantum_explain_panel(rec: dict):
     <span>Entropy {rec['entropy']:.2f}</span>
     <span>Risk {rec['risk']:.2f}</span>
     <span>Margin ΔP {rec['clarity']:.2f}</span>
-    <span>Coherence {rec['coherence']:.2f}</span>
+    <span>Coherence {coherence_label}</span>
   </div>
   <div class="decision-section-title">Measured joint action</div>
   {chosen_html}
@@ -233,13 +299,58 @@ def render_story_tab(ep: dict):
 """,
         unsafe_allow_html=True,
     )
+    if not ep.get("scenes"):
+        status = ep.get("status", "failed")
+        failures = ep.get("scene_failures") or []
+        reason = ep.get("generation_error")
+        st.warning(
+            f"No scenes were accepted; this run is {status}. "
+            "The story and dashboard will appear here after a scene passes validation."
+        )
+        if failures:
+            st.markdown("**Scenes needing attention**")
+            for failure in failures:
+                idx = failure.get("scene_index", "?")
+                label = idx + 1 if isinstance(idx, int) else idx
+                issues = ", ".join(failure.get("issues", [])) or "Generation did not complete."
+                st.caption(f"Scene {label}: {issues}")
+        elif reason:
+            st.caption(f"Generation stopped: {reason}")
+        return
     render_entities(ep)
 
     name_map = build_name_map(ep["characters"])
-    total = len(ep["scenes"])
+    total = int(ep.get("requested_scene_count", ep.get("scenes_count", len(ep["scenes"]))))
+    st.caption(
+        f"{ep.get('status', 'partial')} · requested {total} · "
+        f"planned {ep.get('planned_scene_count', total)} · "
+        f"accepted {ep.get('accepted_scene_count', len(ep['scenes']))} · "
+        f"failed {ep.get('failed_scene_count', len(ep.get('scene_failures', [])))}"
+    )
+    failures = {item.get("scene_index"): item for item in ep.get("scene_failures", [])}
+    plans = {item.get("sequence", i + 1): item for i, item in enumerate(ep.get("story_plan", []))}
+    with st.expander("Scene plan and status"):
+        bible = ep.get("story_bible") or {}
+        if bible:
+            st.markdown(f"**Story question:** {html.escape(bible.get('narrative_question', ''))}")
+            st.markdown(f"**Central conflict:** {html.escape(bible.get('central_conflict', ''))}")
+            st.markdown(f"**Stakes:** {html.escape(bible.get('stakes', ''))}")
+        for scene_index in range(total):
+            failure = failures.get(scene_index)
+            accepted = any(int(item.get("step", -1)) == scene_index for item in ep["scenes"])
+            status_label = "Accepted" if accepted else "Failed" if failure else "Pending"
+            detail = ", ".join(failure.get("issues", [])) if failure else ""
+            plan = plans.get(scene_index + 1, {})
+            title = plan.get("title", f"Scene {scene_index + 1}")
+            objective = plan.get("objective", "")
+            st.markdown(f"**{scene_index + 1}. {html.escape(title)}** · {status_label}")
+            if objective:
+                st.caption(objective)
+            if detail:
+                st.caption(f"Needs attention: {detail}")
     recs = [build_scene_decision_record(s, name_map, total) for s in ep["scenes"]]
 
-    tab_full, tab_scenes = st.tabs(["Full story", "Scenes & quantum trace"])
+    tab_full, tab_scenes = st.tabs(["Full story", "Scenes"])
 
     with tab_full:
         full_text = compile_full_manuscript(ep)
@@ -256,22 +367,23 @@ def render_story_tab(ep: dict):
         )
 
     with tab_scenes:
+        show_decision_analysis = st.checkbox(
+            "Show decision analysis", value=False, key="show_decision_analysis"
+        )
         for rec in recs:
             lines = _format_prose_lines(rec["prose"])
             st.markdown(
                 f"""
 <div class="scene-block">
-  <div class="scene-index">Scene {rec['index']} of {rec['total']}</div>
+  <div class="scene-index">Scene {int(rec['index'])} of {rec['total']}</div>
   <p class="scene-prose-lines">{html.escape(lines)}</p>
 </div>
 """,
                 unsafe_allow_html=True,
             )
-            with st.expander(
-                f"Quantum decision · Scene {rec['index']}",
-                expanded=(rec["index"] == 1),
-            ):
-                render_quantum_explain_panel(rec)
+            if show_decision_analysis:
+                with st.expander(f"Decision analysis · Scene {rec['index']}"):
+                    render_quantum_explain_panel(rec)
 
 
 def _chart_in_panel(title: str, fig, values=None):
@@ -290,13 +402,27 @@ def _chart_in_panel(title: str, fig, values=None):
 
 
 def render_dashboard_tab(ep: dict):
+    scenes = ep.get("scenes") or []
+    if not scenes:
+        st.markdown("### Generation dashboard")
+        st.info(
+            f"No scenes were accepted; this run is {ep.get('status', 'failed')}. "
+            "Trajectory charts will appear after a scene passes validation."
+        )
+        failures = ep.get("scene_failures") or []
+        if failures:
+            for failure in failures:
+                idx = failure.get("scene_index", "?")
+                issues = ", ".join(failure.get("issues", [])) or "generation failed"
+                scene_label = idx + 1 if isinstance(idx, int) else idx
+                st.caption(f"Scene {scene_label}: {issues}")
+        return
     m = episode_metrics(ep)
     name_map = build_name_map(ep["characters"])
     steps = trajectory_steps(ep)
-    scenes = ep["scenes"]
     tension = [s["state"]["tension"] for s in scenes]
     utility = [s["reward"] for s in scenes]
-    coherence = [s.get("coherence", 0) for s in scenes]
+    coherence = [s.get("coherence") for s in scenes]
     entropy = [s.get("entropy", 0) for s in scenes]
     risk = [s.get("risk", 0) for s in scenes]
     posteriors = []
@@ -380,7 +506,7 @@ def render_dashboard_tab(ep: dict):
             st.markdown('<p class="dash-section-title">Narrative state space (PCA)</p>', unsafe_allow_html=True)
             _chart_in_panel("Trajectory embedding", shape)
 
-    st.markdown('<p class="dash-section-title">Quantum decision log</p>', unsafe_allow_html=True)
+    st.markdown('<p class="dash-section-title">Decision log</p>', unsafe_allow_html=True)
     rows = []
     for scene in scenes:
         rec = build_scene_decision_record(scene, name_map, len(scenes))
@@ -390,7 +516,7 @@ def render_dashboard_tab(ep: dict):
                 "Posterior": f"{rec['posterior']:.0%}",
                 "Entropy": round(rec["entropy"], 2),
                 "Risk": round(rec["risk"], 2),
-                "Coherence": round(rec["coherence"], 2),
+                "Coherence": round(rec["coherence"], 2) if rec["coherence"] is not None else "—",
                 "ΔP": round(rec["clarity"], 2),
                 "Measured action": "; ".join(f"{n}: {a}" for n, a in rec["chosen"]),
                 "Driver": rec["driver"],

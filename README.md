@@ -7,7 +7,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![PennyLane](https://img.shields.io/badge/PennyLane-VQC-000000?style=for-the-badge)](https://pennylane.ai/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![Gemini](https://img.shields.io/badge/Gemini-Narrative%20Engine-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
+[![Keyless](https://img.shields.io/badge/Keyless-Offline%20Fallback-2E7D32?style=for-the-badge)](#keyless-operation)
 
 *Explainable multi-agent stories — quantum decisions first, prose second.*
 
@@ -54,7 +54,7 @@
 <td width="50%" valign="top">
 
 ### Narrative engine
-- Gemini scene rendering (5–8 sentences per scene)  
+- State-aware scene rendering (5–8 sentences per scene)  
 - Premise-locked coherence scoring  
 - Name detection from your director brief  
 - Markdown · LaTeX · plain-text exports  
@@ -97,19 +97,174 @@ pip install -r requirements.txt
 
 ### 2 · Configure
 
-Create `.env` in the project root:
+Create `.env` in the project root from [.env.example](.env.example). The
+configured local OLMoE MoE endpoint is the narrative renderer. Deterministic
+output is development-only and cannot complete a manuscript:
 
 ```env
-GOOGLE_API_KEY=your_gemini_api_key_here
+LLM_PROVIDER=local
+NARRATIVE_LLM_PROVIDER=local
+LOCAL_LLM_RUNTIME=llama_cpp
+LOCAL_LLM_BASE_URL=http://127.0.0.1:8081/v1
+LOCAL_LLM_MODEL_PATH=models/OLMoE-1B-7B-0125-Instruct.Q4_K_M.gguf
+LOCAL_LLM_MODEL_NAME=OLMoE-1B-7B-0125-Instruct.Q4_K_M
+LOCAL_LLM_CONTEXT_SIZE=4096
+LOCAL_LLM_THREADS=4
+LOCAL_LLM_GPU_LAYERS=all
+LOCAL_LLM_DEVICE=Vulkan0
+NARRATIVE_LOCAL_TEMPERATURE=0.7
+NARRATIVE_TOP_P=0.8
+NARRATIVE_MAX_OUTPUT_TOKENS=256
+JEV_ENABLED=true
+JEV_PROVIDER=openrouter
+JEV_MODEL=meta-llama/llama-3.1-8b-instruct
+JEV_API_KEY=your_openrouter_key
 ```
 
-> Without a valid key, scene quality and entity detection are limited. The sidebar shows whether the narrative engine is connected.
+For OpenRouter-backed Jev, set `JEV_ENDPOINT` to
+`https://openrouter.ai/api/v1/chat/completions` or leave it empty (the adapter
+uses that default). Keep the key only in `.env` and never commit that file.
+Jev is optional and cannot override a sampled quantum action; failures fall
+back to local rules.
 
 ### 3 · Run
 
 ```bash
 streamlit run app.py
 ```
+
+For an offline smoke test and the existing quantum integration test:
+
+```bash
+python test.py
+python tests/verify_system.py
+```
+
+### Local MoE model
+
+Qwen3-30B-A3B was evaluated but cannot fit this laptop's current free disk
+(its smallest listed GGUF is about 9GB; 6.9GB was free) or available RAM. The
+configured alternative is OLMoE-1B-7B-0125-Instruct, a 7B-total/1B-active MoE,
+Q4_K_M GGUF (4.21GB, Apache-2.0), served by llama.cpp with Vulkan offload on
+the Intel Iris Xe. It fits the current disk and shared Vulkan-memory budget.
+Download it once into `models/`:
+
+```powershell
+New-Item -ItemType Directory -Force models
+curl.exe -L --fail -o models\OLMoE-1B-7B-0125-Instruct.Q4_K_M.gguf `
+  https://huggingface.co/mradermacher/OLMoE-1B-7B-0125-Instruct-GGUF/resolve/main/OLMoE-1B-7B-0125-Instruct.Q4_K_M.gguf
+```
+
+The app reuses a healthy endpoint at `LOCAL_LLM_BASE_URL`; otherwise it starts
+`llama-server` with `--n-gpu-layers all --device Vulkan0` from the configured
+model path. Configure `LLAMA_SERVER_EXECUTABLE` if it is not on `PATH`. The UI
+shows the discovered model ID and endpoint. A model mismatch or unavailable
+provider is surfaced; it cannot silently count as a valid manuscript.
+
+### Development fallback
+
+Set `NARRATIVE_LLM_PROVIDER=deterministic` only for tests or offline interface
+development. Its output is never accepted as a completed narrative.
+
+### Local narrative mode
+
+The local narrative path uses the configured OLMoE llama.cpp model without a hosted
+API key. If the local model or server is unavailable, the UI reports that
+failure; it does not count deterministic templates as accepted narrative.
+
+### Optional hosted MoE narrative mode
+
+To use the powerful hosted narrative model without loading it locally, set
+`NARRATIVE_LLM_PROVIDER=openrouter` and provide `OPENROUTER_API_KEY`. The
+default is `qwen/qwen3.5-35b-a3b`; the premium comparison model is configured
+with `NARRATIVE_PREMIUM_MODEL` but is never called automatically. Jev remains
+independent and continues using `JEV_MODEL` for structured decisions. The
+default hosted request sets `NARRATIVE_REASONING_EFFORT=none` so the model
+returns usable narrative content within the configured output budget.
+
+### Measured example run
+
+Run the complete interactive pipeline:
+
+```powershell
+python experiments\run_single_episode.py
+```
+
+Example answers:
+
+```text
+The last archivist discovers that a buried observatory can rewrite one historical event.
+thriller
+English
+Mira
+Voss
+Nia
+0.01
+0.0
+0.7
+3
+```
+
+The runner reports each scene's locked quantum action, selected and peak
+probabilities, Jev provider/model/latency, narrative provider/model/latency,
+available token usage, utility, and the SQLite episode ID. Coherence is shown
+only when an evaluator actually measured it. The audit is stored in
+`aetherscribe_lab.db`.
+
+### Persistent narrative memory
+
+Structured memory is enabled by default and stored in the same SQLite database.
+Each record is scoped to a `story_id`, carries category, confidence, origin,
+scene provenance, and status, and is retrieved with a bounded deterministic
+ranking before rendering. Memory is advisory only; the sampled VQC action is
+passed as an immutable mapping and is checked after rendering.
+
+Set `NARRATIVE_MEMORY_ENABLED=false` to reproduce the baseline memory-off path.
+The Streamlit sidebar provides **Continue story memory**; leave it unchecked
+for a new isolated story and select it only when intentionally continuing the
+current story. Memory failures fall back to rendering without memory and are
+recorded in the scene audit.
+
+Accepted scenes are also persisted in bounded story history. Exact duplicates,
+repeated openings, highly similar recent scenes, and repeated action beats
+receive one bounded retry with a new-development warning. If repetition
+persists, an action-preserving fallback is used and the rejection is recorded.
+History is isolated by `story_id`.
+
+The continuity trace records the current situation, protagonist goal, facts,
+character knowledge, unresolved conflicts, previous outcome, and next scene
+purpose. Run `python -m pytest -q --basetemp .pytest-tmp` to validate the
+continuity and anti-repetition regression suite.
+
+### Structured secret ledger and reveal gate
+
+Stage 4 adds a story-scoped SQLite secret ledger and deterministic reveal gate.
+Secrets can be constrained by minimum scene, required event, character
+knowledge, prerequisite secret, and explicit instruction. Eligibility is not
+automatic disclosure: the renderer receives only bounded policy guidance.
+
+If a renderer emits a hidden canonical value or alias, prose validation rejects
+the draft and produces an action-preserving safe fallback. Gate or ledger
+failures also fail closed. The Dashboard's **Secret reveal gate** panel shows
+counts, statuses, and redacted reasons without exposing canonical values.
+
+Configuration:
+
+```env
+NARRATIVE_SECRET_LEDGER_ENABLED=true
+NARRATIVE_REVEAL_GATE_ENABLED=true
+NARRATIVE_SECRET_STRICT_VALIDATION=true
+```
+
+Run the Stage 4 regression suite:
+
+```powershell
+python -m pytest -q --basetemp .pytest-tmp
+python tests\verify_system.py
+```
+
+See [stage4-report.md](stage4-report.md) for execution order, adversarial leak
+testing, measured evidence, and known limitations.
 
 | Step | Action |
 |:----:|--------|
@@ -133,7 +288,7 @@ flowchart LR
         PROBS["Action probabilities"]
     end
     subgraph Render["② Rendering · LLM"]
-        GEMINI["StoryRenderer"]
+        RENDERER["StoryRenderer"]
         PROSE["Scene prose + coherence"]
     end
     subgraph Explain["③ Explainability · XAI"]
@@ -141,9 +296,9 @@ flowchart LR
         PANEL["Quantum decision panel"]
     end
     VQC --> PROBS
-    PROBS --> GEMINI
+    PROBS --> RENDERER
     PROBS --> XAI
-    GEMINI --> PROSE
+    RENDERER --> PROSE
     XAI --> PANEL
 ```
 
@@ -162,7 +317,7 @@ flowchart TB
     QAS["QuantumActionSpace"]
     QP["QuantumPolicy\nPennyLane VQC"]
     ER["EpisodeRunner\nstochastic sample"]
-    LLM["StoryRenderer\nGemini"]
+    LLM["StoryRenderer\nKeyless or local"]
     UI["AetherScribe Lab UI\nManuscript · Dashboard"]
 
     BRIEF --> ENV
@@ -257,7 +412,7 @@ For deterministic (always argmax) experiments, use `int(np.argmax(probs))` in `e
 | Control | Purpose |
 |---------|---------|
 | **Premise** | Story setup with character names |
-| **Detect names** | Gemini extraction or heuristics |
+| **Detect names** | Deterministic local heuristics |
 | **Characters** | Protagonist · antagonist · ally display names |
 | **Genre / language / scenes** | 6–12 scenes per episode |
 | **Generate** | Full run at `render_depth="full"` |
@@ -315,7 +470,7 @@ Each scene log includes: `probs`, `action_idx`, `attribution`, `rejections`, `ra
 
 | Variable | Purpose |
 |----------|---------|
-| `GOOGLE_API_KEY` | Gemini — scenes, coherence, rejections, names |
+| `NARRATIVE_LLM_PROVIDER` | `deterministic`, `local`, or optional OpenRouter |
 | `LOG_LEVEL` | Logging verbosity |
 | `DATABASE_URL` | Default `sqlite:///./aetherscribe_lab.db` |
 
@@ -363,7 +518,7 @@ See also `TECHNICAL_SPEC.md` and `DETAILED_SYSTEM_FUNCTIONALITY.txt`.
 
 | Symptom | Fix |
 |---------|-----|
-| Empty / short scenes | Set `GOOGLE_API_KEY`; check sidebar connection |
+| Empty / short scenes | Check the selected local provider and prompt contract |
 | Selected P &lt; alternate P | Expected — see [FAQ above](#quantum-explainability) |
 | Truncated why-not text | Regenerate — old Streamlit session data |
 | Empty charts | Complete a full episode first |

@@ -30,16 +30,20 @@ def compile_full_manuscript(episode: dict) -> str:
     for scene in episode["scenes"]:
         prose, _ = parse_scene_story(scene["story"])
         if prose:
-            paragraphs.append(prose)
+            sequence = int(scene.get("step", len(paragraphs))) + 1
+            title = (scene.get("scene_plan") or {}).get("title") or f"Scene {sequence}"
+            paragraphs.append(f"## {title}\n\n{prose}")
     return "\n\n".join(paragraphs)
 
 
 def compile_plain_text_export(episode: dict) -> str:
     metrics = episode_metrics(episode)
+    requested = int(episode.get("requested_scene_count", episode.get("scenes_count", metrics["scene_count"])))
     lines = [
         "AETHER SCRIBE — NARRATIVE TRAJECTORY EXPORT",
         f"Genre: {episode.get('genre', 'N/A')}",
-        f"Scenes: {metrics['scene_count']}",
+        f"Status: {episode.get('status', 'partial')}",
+        f"Scenes: {metrics['scene_count']} accepted of {requested} requested",
         "",
         "PREMISE",
         episode.get("premise", ""),
@@ -49,16 +53,23 @@ def compile_plain_text_export(episode: dict) -> str:
     ]
     for i, scene in enumerate(episode["scenes"], 1):
         prose, _ = parse_scene_story(scene["story"])
-        lines.extend([f"SCENE {i}", "", prose, ""])
+        sequence = int(scene.get("step", i - 1)) + 1
+        requested = int(episode.get("requested_scene_count", episode.get("scenes_count", len(episode["scenes"]))))
+        title = (scene.get("scene_plan") or {}).get("title") or f"Scene {sequence}"
+        lines.extend([f"SCENE {sequence} OF {requested} — {title}", "", prose, ""])
     return "\n".join(lines)
 
 
 def episode_metrics(episode: dict) -> dict:
     scenes = episode["scenes"]
-    coherences = [s.get("coherence", 0.0) for s in scenes]
+    coherences = [
+        float(s["coherence"])
+        for s in scenes
+        if isinstance(s.get("coherence"), (int, float))
+    ]
     rewards = [s["reward"] for s in scenes]
     return {
-        "mean_coherence": float(np.mean(coherences)) if coherences else 0.0,
+        "mean_coherence": float(np.mean(coherences)) if coherences else None,
         "mean_utility": float(np.mean(rewards)) if rewards else 0.0,
         "cumulative_utility": float(episode.get("total_reward", sum(rewards))),
         "final_tension": float(scenes[-1]["state"]["tension"]) if scenes else 0.0,
@@ -119,7 +130,7 @@ def generate_manuscript_markdown(episode: dict) -> str:
         episode["premise"],
         "",
         "## Metrics",
-        f"- Mean coherence: {metrics['mean_coherence']:.3f}",
+        f"- Mean coherence: {metrics['mean_coherence']:.3f}" if metrics["mean_coherence"] is not None else "- Mean coherence: not measured",
         f"- Cumulative narrative utility: {metrics['cumulative_utility']:.3f}",
         f"- Scenes: {metrics['scene_count']}",
         "",
@@ -144,7 +155,7 @@ def generate_manuscript_latex(episode: dict) -> str:
         "\\end{abstract}",
         "\\section*{Trajectory Summary}",
         f"Scenes: {metrics['scene_count']}; "
-        f"Mean coherence: {metrics['mean_coherence']:.3f}; "
+        f"Mean coherence: {metrics['mean_coherence']:.3f}" if metrics["mean_coherence"] is not None else "Mean coherence: not measured",
         f"Cumulative utility: {metrics['cumulative_utility']:.3f}.",
         "\\section{Rendered Narrative}",
     ]

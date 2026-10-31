@@ -273,31 +273,15 @@ def assign_character_roles(text: str, names: List[str]) -> Dict[str, str]:
 
 
 def analyze_seed(
-    text: str, api_key: str | None = None, prefer_gemini: bool = True
+    text: str, api_key: str | None = None, prefer_remote: bool = False
 ) -> Tuple[str, List[str], Dict[str, str]]:
     """
     Returns (recommended_genre, detected_names, role_map).
     role_map keys: protagonist, antagonist, ally
-  Uses Gemini when api_key is available; falls back to heuristics.
+    Uses deterministic local heuristics and never requires a hosted API.
     """
     if not text.strip():
         return "Thriller", [], {}
-
-    if prefer_gemini and api_key:
-        try:
-            from llm.entity_extractor import extract_entities_gemini
-
-            data = extract_entities_gemini(text, api_key)
-            if data.get("protagonist"):
-                role_map = {
-                    "protagonist": data["protagonist"],
-                    "antagonist": data.get("antagonist") or "Character 2",
-                    "ally": data.get("ally") or "Character 3",
-                }
-                names = data.get("detected_names") or list(role_map.values())
-                return data.get("genre", "Drama"), names[:3], role_map
-        except Exception:
-            pass
 
     text_lower = re.sub(r"[^\w\s]", " ", text.lower())
     text_lower = re.sub(r"\s+", " ", text_lower)

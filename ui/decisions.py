@@ -235,6 +235,7 @@ def build_scene_decision_record(
         )
 
     prose, trace_raw = parse_scene_story(scene.get("story", ""))
+    trace_raw = scene.get("decision_trace", trace_raw)
     trace = build_quantum_trace(chosen, trace_raw)
     driver = primary_driver_name(scene, name_map)
     vqc = distill_vqc_rationale(scene.get("rationale", ""))
@@ -268,7 +269,10 @@ def build_scene_decision_record(
         "rejections": rejections,
         "driver": driver,
         "vqc": vqc,
-        "coherence": float(scene.get("coherence", 0)),
+        "coherence": (
+            float(scene["coherence"])
+            if isinstance(scene.get("coherence"), (int, float)) else None
+        ),
         "tension": float(scene["state"]["tension"]),
         "utility": float(scene.get("reward", 0)),
         "clarity": clarity,

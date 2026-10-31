@@ -1,6 +1,11 @@
-from google import genai
+"""Offline smoke test for the configured local narrative provider."""
 
-client = genai.Client(api_key="AIzaSyBMX8XoNHZXjemm0ywSnnVKyOTEuIQYfD4")
+from llm.providers import GenerationConfig, ProviderRouter
 
-for m in client.models.list():
-    print(m.name)
+
+if __name__ == "__main__":
+    router = ProviderRouter()
+    print(router.health_check())
+    result = router.generate("Write one sentence about a locked quantum action.", GenerationConfig(max_output_tokens=32))
+    assert result.text
+    print(result.text)

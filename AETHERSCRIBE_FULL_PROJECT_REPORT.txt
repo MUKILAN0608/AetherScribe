@@ -1,0 +1,1337 @@
+================================================================================
+                    AETHERSCRIBE LAB — FULL PROJECT REPORT
+              Quantum Narrative Intelligence · Master Render Edition v6.0
+================================================================================
+
+Document type     : Comprehensive technical and functional report
+Product name      : AetherScribe Lab
+Repository        : https://github.com/MUKILAN0608/AetherScribe
+Local folder      : quantum_rl (may differ after clone)
+Report version    : 2.1
+Last updated      : February 10, 2026
+Primary entry     : streamlit run app.py
+Logger namespace  : AetherScribeLab
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+
+  1.  Executive Summary
+  2.  Problem Statement and Design Goals
+  3.  Triad of Authority Architecture
+  4.  Technology Stack
+  5.  Quantum Reinforcement Learning Core
+  6.  Multi-Agent Action Space
+  7.  Narrative Environment (StoryEnvironment)
+  8.  Episode Orchestration (EpisodeRunner)
+  9.  Explainability System
+  10. Quantum Decision UI Panel (v6.0)
+  11. Large Language Model Integration
+  12. Entity Extraction and Name Synchronization
+  13. Streamlit Application (AetherScribe Lab UI)
+  14. Manuscript Compilation and Exports
+  15. Research Dashboard and Telemetry
+  16. Data Model and Episode Log Schema
+  17. Configuration and Environment Variables
+  18. Render Depth Modes and Hyperparameters
+  19. Stochastic Measurement and Posterior Semantics
+  20. Project File Inventory
+  21. Installation and Operation
+  22. Testing and Verification
+  23. Troubleshooting Guide
+  24. Academic Use, Citation, and Reproducibility
+  25. Glossary
+  26. Appendix — Complete Joint Action Catalog (16 branches)
+
+  ----- PART II — PEER-REVIEW / PUBLICATION SUPPLEMENT -----
+  27. Experimental Setup (paper Section 4 style)
+  28. Quantum Circuit Architecture Figure (textual)
+  29. Ablation Study (template + how to derive metrics)
+  30. Statistical Validation (methods for comparative results)
+  31. Human Evaluation Protocol (recommended study design)
+  32. Illustrative Narrative Example (trace + explainability)
+  33. Failure Case Analysis
+  34. Complexity and Scalability Analysis
+  35. Limitations (pre-conclusion)
+  36. Benchmark and Related-Work Comparison
+  37. Reproducibility (expanded checklist)
+
+================================================================================
+SECTION 1 — EXECUTIVE SUMMARY
+================================================================================
+
+AetherScribe Lab is a research platform that generates multi-agent narrative
+stories under explicit quantum policy control. Unlike conventional LLM
+storytellers that choose plot events inside the language model, AetherScribe
+separates decision-making from prose generation:
+
+  • A Variational Quantum Circuit (VQC) built with PennyLane computes a
+    probability distribution over joint character actions at each scene.
+  • One joint action is sampled from that distribution and locked.
+  • Google Gemini (when configured) renders scene prose that must respect the
+    locked actions, then scores narrative coherence.
+  • An explainability layer and dedicated UI panel document the measured path,
+    alternate branches, posteriors, trait influence, and counterfactual reasons.
+
+The deliverables for each run are:
+
+  1. A full manuscript (6–12 scenes, configurable)
+  2. Per-scene quantum decision cards with metrics and why-not analysis
+  3. A research dashboard of Plotly charts (tension, coherence, entropy, etc.)
+  4. Structured episode logs suitable for audit, export, and publication
+
+Target users: researchers in quantum ML, explainable AI, interactive narrative,
+and creative systems; developers evaluating hybrid quantum-classical RL; and
+demonstrators who need transparent multi-agent story generation.
+
+================================================================================
+SECTION 2 — PROBLEM STATEMENT AND DESIGN GOALS
+================================================================================
+
+2.1 PROBLEM
+--------------------------------------------------------------------------------
+Generative story systems often produce fluent text while hiding the reasoning
+behind plot choices. Stakeholders cannot easily answer:
+
+  • Why did the protagonist take this action and not another?
+  • Which character's traits drove the outcome?
+  • What alternate paths were considered?
+  • Can the same premise be reproduced with traceable decisions?
+
+2.2 DESIGN GOALS
+--------------------------------------------------------------------------------
+
+  GOAL                    IMPLEMENTATION
+  ----------------------  ---------------------------------------------------
+  Transparency            Log probs, action_idx, rejections before rendering
+  Narrative integrity     LLM constrained to quantum-resolved joint actions
+  Reproducibility         Episode logs store weights, state, diagnostics
+  Human-readable XAI      ExplanationEngine + ui/decisions.py + quantum_panel
+  Character identity      Director brief names propagate to prose and charts
+  Research presentation   Manuscript tab, Dashboard tab, export helpers
+
+2.3 NON-GOALS (CURRENT VERSION)
+--------------------------------------------------------------------------------
+  • Not a general-purpose chatbot or unconstrained creative writing tool
+  • Not a production game engine (no real-time player input loop)
+  • Not guaranteed deterministic stories (default policy uses stochastic sampling)
+  • Not multi-user cloud deployment (local Streamlit session model)
+
+================================================================================
+SECTION 3 — TRIAD OF AUTHORITY ARCHITECTURE
+================================================================================
+
+AetherScribe enforces role separation across three authorities:
+
+3.1 DECISION AUTHORITY — QUANTUM RL
+--------------------------------------------------------------------------------
+  Components : QuantumPolicy, QuantumActionSpace, EpisodeRunner (sample step)
+  Library    : PennyLane (default.mixed device, 4 qubits)
+  Input      : Encoded narrative state vector + combined trait vector
+  Output     : Action probabilities, entropy, risk, attribution, sensitivity
+  Rule       : Branch selection occurs BEFORE any scene text is generated
+
+3.2 RENDERING AUTHORITY — LLM SCREENWRITER
+--------------------------------------------------------------------------------
+  Component  : StoryRenderer (llm/story_renderer.py)
+  API        : Google Gemini (gemini-2.5-flash primary, gemini-2.0-flash fallback)
+  Input      : Locked joint action, rationale, prior summary, director brief
+  Output     : Scene prose (target 5–8 sentences, 180+ words), summary, coherence
+  Rule       : Must render the specified actions; cannot override quantum branch
+
+3.3 EXPLAINABILITY AUTHORITY — INTERPRETATION
+--------------------------------------------------------------------------------
+  Components : ExplanationEngine, ui/decisions.py, ui/quantum_panel.py
+  Input      : VQC diagnostics, rejections, attribution, agent traits, name_map
+  Output     : Policy rationale, alternate paths, influence bars, narrative trace
+  Rule       : Counterfactual text must be grounded in logged posteriors; UI
+               distinguishes selected branch P from peak branch P under sampling
+
+================================================================================
+SECTION 4 — TECHNOLOGY STACK
+================================================================================
+
+  Layer              Technology              Version (requirements.txt)
+  -----------------  ----------------------  ---------------------------
+  Language           Python                  3.10+ recommended
+  Quantum ML         PennyLane               >= 0.35
+  Numerics           NumPy                   >= 1.24
+  LLM API            google-generativeai     >= 0.5
+  Web UI             Streamlit               >= 1.32
+  Visualization      Plotly                  >= 5.18
+  Data               Pandas                  >= 2.0
+  Persistence        SQLAlchemy + SQLite     >= 2.0
+  ML utilities       scikit-learn            >= 1.3 (PCA embedding)
+  Config             python-dotenv           >= 1.0
+
+  Audit logging      logs/research_audit.log (AetherScribeLab logger)
+  Default database   sqlite:///./aetherscribe_lab.db
+
+================================================================================
+SECTION 5 — QUANTUM REINFORCEMENT LEARNING CORE
+================================================================================
+
+5.1 QUANTUMPOLICY CLASS
+--------------------------------------------------------------------------------
+  File : quantum_policy/quantum_policy.py
+
+  Device     : qml.device("default.mixed", wires=n_qubits)  [default n_qubits=4]
+  Weights    : Random uniform in [0, π], updated after each scene
+  Circuit layers per qubit wire i:
+    1. RY(state_vec[i])           — narrative state encoding
+    2. RY(trait_vec[i] * π)       — character trait biasing
+    3. RZ(weights[i])             — variational trainable layer
+  Measurement: qml.probs(wires=range(n_qubits)) → normalized probability vector
+
+5.2 ACTION PROBABILITY MAPPING
+--------------------------------------------------------------------------------
+  Raw circuit outputs 2^n = 16 basis probabilities for n=4.
+  QuantumActionSpace defines num_actions = 16 joint actions.
+  get_action_probs() truncates to num_actions and renormalizes.
+
+5.3 STEP DIAGNOSTICS (compute_step_diagnostics)
+--------------------------------------------------------------------------------
+  Returns dict:
+    action_probs   — normalized over joint action indices
+    entropy        — Shannon entropy of full_probs (bits)
+    risk           — clip(0.6 * entropy/n_qubits + 0.4 * tension, 0, 1)
+    attribution    — Protagonist / Antagonist / Ally influence shares
+    sensitivity    — feature perturbation scores (when full_explain=True)
+
+5.4 INFLUENCE ATTRIBUTION
+--------------------------------------------------------------------------------
+  When full_explain=True: perturbation-based attribution via get_influence_attribution
+  Fast path: normalize first three trait channels to protagonist/antagonist/ally
+
+5.5 POLICY UPDATE (REINFORCE-style)
+--------------------------------------------------------------------------------
+  Simplified update after each scene:
+    weights[i] += lr * reward * (action_index / (n_qubits + 1))
+  Weights clipped to [0, 2π]
+  Reward = env_reward * coherence_score (composite)
+
+5.6 STATE ENCODING
+--------------------------------------------------------------------------------
+  File : environment/state_representation.py
+  Method : StateRepresentation.encode(phase, tension, genre, step)
+
+  Four features mapped to qubit rotation inputs:
+    Tension   — float in [0, 1]
+    Phase     — intro → 0.0, rising → 0.5, climax → 1.0
+    Progress  — step / max_steps
+    Genre     — numeric encoding from genre string
+
+================================================================================
+SECTION 6 — MULTI-AGENT ACTION SPACE
+================================================================================
+
+6.1 QUANTUMACTIONSPACE
+--------------------------------------------------------------------------------
+  File : quantum_policy/quantum_action_space.py
+  Agents : ProtagonistAgent, AntagonistAgent, AllyAgent (agents/)
+
+  num_actions = 16 (matches 2^4 qubit measurement outcomes)
+
+  Each joint action is a dict:
+    {"Protagonist": "<action>", "Antagonist": "<action>", "Ally": "<action>"}
+
+  get_joint_action(index) returns joint_actions[index % 16]
+
+6.2 ACTION REGISTRY
+--------------------------------------------------------------------------------
+  File : quantum_policy/action_registry.py
+  Function : joint_action_to_env(joint_action)
+  Maps display-style action strings to environment snake_case keys used in
+  StoryEnvironment.ACTION_IMPACT (e.g. tension deltas, relationship updates).
+
+6.3 CHARACTER TRAITS (SUMMARY)
+--------------------------------------------------------------------------------
+  Protagonist : aggression, curiosity, resilience, empathy (typical)
+  Antagonist  : hostility, strategic_depth, manipulation, ruthlessness
+  Ally        : loyalty, supportiveness, resourcefulness, sacrifice
+
+  EpisodeRunner._get_combined_trait_vec() aggregates pairs into 4-channel vector
+  fed to the VQC as trait_vec.
+
+  See SECTION 26 for the complete list of 16 joint action combinations.
+
+================================================================================
+SECTION 7 — NARRATIVE ENVIRONMENT (STORYENVIRONMENT)
+================================================================================
+
+7.1 OVERVIEW
+--------------------------------------------------------------------------------
+  File : environment/story_environment.py
+
+  Manages narrative physics: tension, phase, relationships, step counter.
+  Genre-specific tension multipliers from environment/genre_dynamics.py.
+
+7.2 STATE OBJECT
+--------------------------------------------------------------------------------
+  {
+    "genre": str,
+    "phase": "intro" | "rising" | "climax",
+    "tension": float [0, 1],
+    "step": int,
+    "relationships": {
+      "protagonist_ally": {"trust", "enmity"},
+      "protagonist_antagonist": {"trust", "enmity"},
+      "ally_antagonist": {"trust", "enmity"}
+    },
+    "director_brief": dict
+  }
+
+7.3 PHASE EVOLUTION
+--------------------------------------------------------------------------------
+  tension > 0.75  → climax  (phase_index = 2)
+  tension > 0.45  → rising  (phase_index = 1)
+  else            → intro   (phase_index = 0)
+
+7.4 RELATIONSHIP DYNAMICS
+--------------------------------------------------------------------------------
+  Trust/enmity updated from joint env actions (_update_relationships).
+  Examples:
+    Ally provide_critical_intelligence → +trust P–L
+    Ally sacrifice_personal_safety     → +0.2 trust P–L
+    Protagonist confront / Antagonist strike → +enmity P–A
+
+7.5 REWARD (ENVIRONMENT)
+--------------------------------------------------------------------------------
+  composite_reward =
+    r_tension (current tension)
+    + r_progress (step/max_steps * 0.5)
+    + r_stability (0.2)
+    + r_synergy (protagonist_ally trust * 0.3)
+
+  EpisodeRunner multiplies by LLM coherence for policy learning signal.
+
+7.6 TERMINATION
+--------------------------------------------------------------------------------
+  done = True when current_step >= max_steps (6–12 in UI, default 8)
+
+================================================================================
+SECTION 8 — EPISODE ORCHESTRATION (EPISODERUNNER)
+================================================================================
+
+8.1 CLASS AND DEPENDENCIES
+--------------------------------------------------------------------------------
+  File : evaluation/episode_runner.py
+
+  Constructor(env, policy, action_space, explainer, renderer)
+
+8.2 MAIN LOOP (per scene)
+--------------------------------------------------------------------------------
+  1. Encode state → state_vec
+  2. policy.compute_step_diagnostics(...) → probs, entropy, risk, attribution
+  3. SAMPLE: action_idx = np.random.choice(len(probs), p=probs)
+  4. joint_action = action_space.get_joint_action(action_idx)
+  5. Build rejection_data for all i != action_idx with template reasons:
+       prob < 0.05        → "Low posterior mass under current quantum state."
+       prob < 0.3*max     → "Trait-state interference suppressed this branch."
+       prob < 0.7*max     → "Character-trait misalignment with narrative phase."
+       else               → "Strong alternative; dominated by marginal utility gap."
+  6. Sort rejections by prob descending
+  7. env.step(env_action) → next_state, env_reward, done
+  8. ExplanationEngine.generate_explanation(...) → rationale string
+  9. Optional StoryRenderer.analyze_rejections(...) if render_depth == "full"
+  10. StoryRenderer.render_scene(...) → story, summary, coherence
+  11. composite_reward = env_reward * coherence; policy.update(...)
+  12. Append log_entry to episode_log
+
+8.3 RETURN PAYLOAD
+--------------------------------------------------------------------------------
+  {
+    "id": UUID string,
+    "scenes": [ log_entry, ... ],
+    "total_reward": float,
+    "mode": str (e.g. "Long Story"),
+    "render_depth": "full" | "standard" | "fast",
+    "traits": list,
+    "characters": dict from director_brief
+  }
+
+8.4 CALLBACK
+--------------------------------------------------------------------------------
+  on_step(log_entry, current, total) — used by app.py for progress bar
+
+================================================================================
+SECTION 9 — EXPLAINABILITY SYSTEM
+================================================================================
+
+9.1 EXPLANATION ENGINE
+--------------------------------------------------------------------------------
+  File : explainability/explanation_engine.py
+
+  generate_explanation(state_vec, joint_action, rejections, attribution,
+                       agents, name_map)
+
+  Output sections (newline-separated):
+    • Measurement context at narrative tension
+    • Measured outcome with character NAMES (not role labels)
+    • Top superposed branches not selected with posterior and reason
+    • Trait-channel attribution peak and dominant disposition
+    • Phase/tension narrative pressure line (climax / establishing / escalating)
+
+9.2 UI DECISION RECORD BUILDER
+--------------------------------------------------------------------------------
+  File : ui/decisions.py
+
+  build_name_map(characters) — maps protagonist/antagonist/ally keys to display names
+
+  build_scene_decision_record(scene, name_map, scene_total) produces:
+    index, total, prose, trace, chosen, rejections[], driver, vqc{}, coherence,
+    tension, utility, clarity, phase, entropy, risk, posterior, max_posterior,
+    peak_label, sampled_note, action_idx, attribution (normalized), sensitivity
+
+  Key functions:
+    distill_vqc_rationale()     — strips duplicate branch lists for UI
+    build_quantum_trace()       — grammatical one-sentence measured-path summary
+    explain_why_not_chosen()    — full counterfactual paragraph grounded in posteriors
+    _peak_joint_action()        — resolves highest-probability branch for peak label
+
+9.3 REJECTION REASON QUALITY
+--------------------------------------------------------------------------------
+  Template reasons from EpisodeRunner are always used as the base.
+  deep_rejections from LLM merged only if _llm_reason_usable() passes:
+    length >= 40, no truncation (...), not overly colon-heavy.
+
+9.4 RELATED MODULES
+--------------------------------------------------------------------------------
+  explainability/narrative_rationale.py   — narrative context helpers
+  explainability/quantum_decision_trace.py — trace utilities
+
+================================================================================
+SECTION 10 — QUANTUM DECISION UI PANEL (v6.0)
+================================================================================
+
+10.1 LOCATION IN APP
+--------------------------------------------------------------------------------
+  Manuscript tab → Scenes & quantum trace → expand scene
+  Renderer : ui/quantum_panel.py :: render_quantum_explain_panel(rec)
+  Styles   : ui/styles.py (.qx-* CSS classes)
+
+10.2 PANEL SECTIONS
+--------------------------------------------------------------------------------
+  HEADER     : "Quantum decision · Scene N of M"
+  LEGEND     : Explains posteriors and stochastic sampling vs peak branch
+  METRICS    : Selected branch P | Peak branch P | Entropy | Risk | Margin ΔP |
+               Coherence
+  NOTE       : Purple callout when selected posterior < peak posterior
+  CHOSEN PATH: Table of character name → readable action
+  RATIONALE  : Distilled measurement, driver, disposition, arc lines
+  INFLUENCE  : Horizontal bar chart (normalized attribution %)
+  ALTERNATES : Up to 3 cards — actions, posterior, full why-not paragraph
+  TRACE      : Italic narrative trace sentence
+
+10.3 METRIC DEFINITIONS (UI)
+--------------------------------------------------------------------------------
+  Selected branch P : probs[action_idx] — the sampled branch used in story
+  Peak branch P     : max(probs) — highest mass in superposition
+  Margin ΔP         : sorted(probs)[-1] - sorted(probs)[-2]
+  Coherence         : LLM auditor score for scene (0–1)
+
+10.4 SAMPLING NOTE TEXT (when applicable)
+--------------------------------------------------------------------------------
+  "The VQC distribution peaked at X% (<peak joint summary>), but this scene
+   stochastically measured the selected branch at Y%."
+
+10.5 WHY-NOT PARAGRAPH STRUCTURE
+--------------------------------------------------------------------------------
+  If alternate posterior > selected posterior:
+    Lead sentence explains stochastic sampling (not argmax).
+  Then: alternate summary, measured summary, template/LLM reason.
+
+================================================================================
+SECTION 11 — LARGE LANGUAGE MODEL INTEGRATION
+================================================================================
+
+11.1 STORYRENDERER
+--------------------------------------------------------------------------------
+  File : llm/story_renderer.py
+  Logger : AetherScribeLab.StoryRenderer
+
+  Provider priority:
+    1. Gemini when GOOGLE_API_KEY valid (gemini-2.5-flash, then gemini-2.0-flash)
+    2. Local templates when no key or connection failure
+
+  GEMINI_MIN_OUTPUT_TOKENS = 256   (avoids empty responses on short caps)
+  GEMINI_SCENE_OUTPUT_TOKENS = 1536
+
+  Note: gemini-2.5-* models reserve output budget for internal reasoning;
+  low max_output_tokens can return zero text parts — mitigated by minimum caps.
+
+11.2 RENDER SCENE PIPELINE
+--------------------------------------------------------------------------------
+  render_scene(state, actions, rationale, previous_summary, language,
+               temperature, mode, lite_mode)
+
+  Returns: (story_text, updated_summary, prompt_trace, coherence_score)
+
+  Story format tags:
+    [SCENE n] NARRATIVE: ...
+    [QUANTUM_TRACE] ...
+    [COHERENCE] ...
+
+  Prompts built via llm/prompt_templates.py (5–8 sentences, premise-locked)
+
+11.3 COHERENCE AUDIT
+--------------------------------------------------------------------------------
+  Separate Gemini call scores alignment of prose with locked actions and premise.
+  Score in [0.0, 1.0] feeds composite reward.
+
+11.4 REJECTION ANALYSIS (full render depth)
+--------------------------------------------------------------------------------
+  analyze_rejections(state, chosen_action, rejected_actions, rationale, language)
+  Optional one-sentence LLM enrichment per top rejection (merged in UI if quality OK)
+
+11.5 PROMPT TEMPLATES
+--------------------------------------------------------------------------------
+  File : llm/prompt_templates.py
+  Includes MODE_SPECS, genre/phase constraints, character name enforcement
+
+================================================================================
+SECTION 12 — ENTITY EXTRACTION AND NAME SYNCHRONIZATION
+================================================================================
+
+12.1 GEMINI ENTITY EXTRACTOR
+--------------------------------------------------------------------------------
+  File : llm/entity_extractor.py
+  Function : extract_entities_gemini(premise, api_key)
+
+  Returns JSON-shaped:
+    genre, protagonist, antagonist, ally, detected_names[]
+
+12.2 SEED ANALYSIS
+--------------------------------------------------------------------------------
+  File : ui/seed_analysis.py
+  Function : analyze_seed(seed, api_key=...)
+  Used by sidebar "Detect names from premise" in app.py
+
+12.3 NAME MAP PROPAGATION
+--------------------------------------------------------------------------------
+  Director brief characters → name_map → ExplanationEngine, charts, quantum panel
+  ui/decisions.build_name_map handles protagonist/antagonist/ally key variants
+
+  Rule: UI and explanations prefer user-facing character names, not role labels.
+
+================================================================================
+SECTION 13 — STREAMLIT APPLICATION (AETHERSCRIBE LAB UI)
+================================================================================
+
+13.1 ENTRY POINT
+--------------------------------------------------------------------------------
+  File : app.py
+  Page title : "Narrative Studio" (browser tab)
+  Branding     : AetherScribe Lab (logs, documentation, exports)
+
+13.2 SESSION STATE
+--------------------------------------------------------------------------------
+  current_episode, trained_weights, running,
+  char_protagonist, char_antagonist, char_ally
+
+  trained_weights persist VQC weights across Generate clicks in same session.
+
+13.3 SIDEBAR CONTROLS
+--------------------------------------------------------------------------------
+  Premise (textarea)
+  Detect names from premise (button)
+  Character name inputs (3 roles)
+  Genre selectbox (6 genres)
+  Language selectbox (5 languages)
+  Scenes slider (6–12)
+  Generate (primary button)
+  Connection status (Gemini availability)
+
+13.4 DEFAULT RUN PARAMETERS
+--------------------------------------------------------------------------------
+  DEFAULT_LR   = 0.01
+  DEFAULT_EPS  = 0.01
+  DEFAULT_TEMP = 0.88
+  mode         = "Long Story"
+  render_depth = "full"
+
+13.5 MAIN TABS
+--------------------------------------------------------------------------------
+  Manuscript — render_kpi_strip + render_story_tab (ui/research_views.py)
+  Dashboard  — render_dashboard_tab (extended KPI + Plotly charts)
+
+13.6 CSS
+--------------------------------------------------------------------------------
+  File : ui/styles.py (RESEARCH_CSS)
+  Dark research theme, KPI cards, quantum panel (.qx-*), chart titles centered
+
+================================================================================
+SECTION 14 — MANUSCRIPT COMPILATION AND EXPORTS
+================================================================================
+
+  File : ui/manuscript.py
+
+  parse_scene_story(story_text) → (narrative prose, quantum trace segment)
+
+  compile_full_manuscript(episode)     → continuous prose paragraphs
+  compile_plain_text_export(episode)   → header + premise + scenes
+  generate_manuscript_markdown(episode) → structured Markdown
+  generate_manuscript_latex(episode)    → LaTeX source
+
+  episode_metrics(episode) → mean_coherence, cumulative_utility, final_tension, etc.
+
+  Exports reflect the measured quantum trajectory — they do not rewrite decisions.
+
+================================================================================
+SECTION 15 — RESEARCH DASHBOARD AND TELEMETRY
+================================================================================
+
+15.1 IMPLEMENTATION
+--------------------------------------------------------------------------------
+  File : ui/research_views.py, ui/charts.py
+
+  Charts render via st.plotly_chart with chart_with_title() for centered titles.
+  _chart_in_panel() avoids empty HTML wrapper boxes that hid charts in earlier builds.
+
+15.2 CHART INVENTORY (typical episode)
+--------------------------------------------------------------------------------
+  Dramatic tension over scenes
+  Narrative coherence line
+  Scene utility / reward
+  Decision margin ΔP (clarity)
+  Selected-branch posterior per scene
+  Policy entropy
+  Narrative risk
+  Trait pulse (multi-series)
+  Final trait attribution (pie)
+  Relationship bonds (trust / enmity)
+  Control heatmap (character influence over time)
+  Trajectory embedding (PCA when sufficient steps)
+  Pressure vs utility scatter (when data available)
+
+15.3 KPI STRIP
+--------------------------------------------------------------------------------
+  Standard : coherence, utility, tension, scene count
+  Extended   : + mean posterior, policy entropy, narrative risk
+
+15.4 EMPTY STATE HANDLING
+--------------------------------------------------------------------------------
+  has_chart_data(values) guards prevent blank chart panels; shows message instead.
+
+================================================================================
+SECTION 16 — DATA MODEL AND EPISODE LOG SCHEMA
+================================================================================
+
+16.1 SCENE LOG ENTRY (log_entry)
+--------------------------------------------------------------------------------
+  step              : int (0-based)
+  state             : StoryEnvironment state dict
+  action            : joint action dict (display strings)
+  env_action        : mapped env keys for StoryEnvironment.step
+  action_idx        : int sampled index
+  probs             : list[float] length num_actions (16)
+  entropy           : float
+  risk              : float
+  attribution       : dict Protagonist/Antagonist/Ally → float
+  rejections        : list of {index, action, prob, reason}
+  deep_rejections   : list of str (LLM or template)
+  sensitivity       : list[float]
+  coherence         : float
+  rationale         : str (ExplanationEngine output)
+  story             : str (full renderer output with tags)
+  summary           : str (running scene summary)
+  prompt_trace      : str (debug / audit)
+  weights           : list[float] VQC weights after update
+  reward            : float composite_reward
+
+16.2 EPISODE OBJECT (session / st.session_state.current_episode)
+--------------------------------------------------------------------------------
+  id, scenes[], total_reward, genre, premise, characters{}, language, scenes_count
+
+16.3 DATABASE (optional persistence)
+--------------------------------------------------------------------------------
+  File : evaluation/database.py
+  Default URL : sqlite:///./aetherscribe_lab.db
+  Used by experiments/run_single_episode.py for archival runs
+
+================================================================================
+SECTION 17 — CONFIGURATION AND ENVIRONMENT VARIABLES
+================================================================================
+
+  Variable         Purpose
+  ---------------  ----------------------------------------------------------
+  GOOGLE_API_KEY   Gemini API for scenes, coherence, rejections, entities
+  GEMINI_MODEL     Optional override (default tries 2.5-flash then 2.0-flash)
+  LOG_LEVEL        Logging level (default INFO)
+  DATABASE_URL     SQLite connection string
+
+  Load path : architecture_utils.load_env_variables() reads .env from project root
+
+  SECURITY: Never commit .env to version control. Rotate exposed keys.
+
+================================================================================
+SECTION 18 — RENDER DEPTH MODES AND HYPERPARAMETERS
+================================================================================
+
+  render_depth   Behavior
+  -------------  ------------------------------------------------------------
+  full           Scene + summary + coherence LLM + rejection LLM (app default)
+  standard       Scene + summary + coherence; template rejections only
+  fast           Scene only; heuristic coherence; template rejections
+
+  Hyperparameter  Default (app.py)  Role
+  --------------  ----------------  -----------------------------------------
+  lr              0.01              Policy weight learning rate
+  eps             0.01              Passed to VQC diagnostics
+  temperature     0.88              LLM rendering temperature
+
+================================================================================
+SECTION 19 — STOCHASTIC MEASUREMENT AND POSTERIOR SEMANTICS
+================================================================================
+
+19.1 DEFAULT ACTION SELECTION
+--------------------------------------------------------------------------------
+  action_idx = int(np.random.choice(len(probs), p=probs))
+
+  This is intentional exploration-style sampling from the VQC distribution.
+
+19.2 INTERPRETING POSTERIORS IN THE UI
+--------------------------------------------------------------------------------
+  Selected branch P : probability mass on the branch that was sampled
+  Peak branch P     : max probability among all 16 branches
+
+  These often differ. Example: selected 13%, alternate 49% is VALID — the
+  alternate had higher mass but was not the random draw for this scene.
+
+19.3 UI MITIGATIONS FOR CONFUSION
+--------------------------------------------------------------------------------
+  • Dual metrics (Selected vs Peak)
+  • Sampling note callout
+  • Why-not text explains higher-posterior alternates not selected
+  • README and this report document the behavior
+
+19.4 DETERMINISTIC MODE (research option)
+--------------------------------------------------------------------------------
+  Replace sampling with: action_idx = int(np.argmax(probs))
+  Document this choice in publications — removes stochastic exploration.
+
+================================================================================
+SECTION 20 — PROJECT FILE INVENTORY
+================================================================================
+
+  ROOT
+    app.py                      Streamlit application entry
+    architecture_utils.py       Env load, AetherScribeLab logging setup
+    requirements.txt            Python dependencies
+    README.md                   GitHub documentation (v6.0 layout)
+    TECHNICAL_SPEC.md           Architecture specification (summary)
+    DETAILED_SYSTEM_FUNCTIONALITY.txt  Legacy extended doc (v6.0 base)
+    AETHERSCRIBE_FULL_PROJECT_REPORT.txt  This report
+
+  agents/
+    base_agent.py, protagonist_agent.py, antagonist_agent.py, ally_agent.py
+
+  environment/
+    story_environment.py, state_representation.py, genre_dynamics.py, story_env.py
+
+  quantum_policy/
+    quantum_policy.py, quantum_action_space.py, action_registry.py,
+    interference_sampler.py, amplitude_dynamics.py
+
+  explainability/
+    explanation_engine.py, narrative_rationale.py, quantum_decision_trace.py
+
+  llm/
+    story_renderer.py, prompt_templates.py, entity_extractor.py
+
+  evaluation/
+    episode_runner.py, database.py
+
+  ui/
+    research_views.py, quantum_panel.py, decisions.py, charts.py,
+    manuscript.py, seed_analysis.py, styles.py, __init__.py
+
+  experiments/
+    run_single_episode.py       CLI episode configuration and DB archive
+
+  tests/
+    verify_system.py            Integration smoke test
+
+  logs/
+    research_audit.log          Runtime audit trail
+
+================================================================================
+SECTION 21 — INSTALLATION AND OPERATION
+================================================================================
+
+21.1 INSTALL
+--------------------------------------------------------------------------------
+  git clone https://github.com/MUKILAN0608/AetherScribe.git
+  cd AetherScribe    # or quantum_rl
+  pip install -r requirements.txt
+
+21.2 CONFIGURE
+--------------------------------------------------------------------------------
+  Create .env:
+    GOOGLE_API_KEY=your_key_here
+
+21.3 RUN
+--------------------------------------------------------------------------------
+  streamlit run app.py
+
+21.4 TYPICAL WORKFLOW
+--------------------------------------------------------------------------------
+  1. Enter premise with character names
+  2. Detect names (optional) / edit character fields
+  3. Select genre, language, scene count
+  4. Generate — wait for all scenes (minutes at full depth)
+  5. Review Manuscript (story + quantum trace per scene)
+  6. Review Dashboard (charts)
+  7. Export via manuscript helpers if needed
+  8. New story — clears episode; weights may carry over in session
+
+21.5 CLI ALTERNATIVE
+--------------------------------------------------------------------------------
+  python experiments/run_single_episode.py
+  python tests/verify_system.py
+
+================================================================================
+SECTION 22 — TESTING AND VERIFICATION
+================================================================================
+
+  tests/verify_system.py
+    End-to-end integration test of core components
+    Prints: "AetherScribe Lab v5.4.2 Integration Test" on start
+
+  Manual smoke test:
+    python -c "from ui.decisions import build_scene_decision_record, build_name_map"
+
+  After code changes to explainability:
+    Regenerate a full episode in Streamlit (cached sessions keep old formatting)
+
+================================================================================
+SECTION 23 — TROUBLESHOOTING GUIDE
+================================================================================
+
+  SYMPTOM                          CAUSE                    REMEDY
+  -------------------------------  -----------------------  -------------------------
+  Empty / very short scenes        API key, token limits    Set GOOGLE_API_KEY;
+                                                            check sidebar status;
+                                                            see logs/research_audit.log
+
+  Selected P < alternate P         Stochastic sampling      Expected — read Section 19
+
+  Truncated why-not text           Old session data         Click Generate again
+
+  Empty chart panels               No episode / no data     Complete generation;
+                                                            has_chart_data guards
+
+  Wrong character names in charts  Brief not synced         Detect names → Generate
+
+  GOOGLE_API_KEY missing warning   No .env                  Add .env at project root
+
+  Push rejected (git)              Remote ahead             git pull origin main first
+
+================================================================================
+SECTION 24 — ACADEMIC USE, CITATION, AND REPRODUCIBILITY
+================================================================================
+
+24.1 SUGGESTED BIBTEX
+--------------------------------------------------------------------------------
+@software{aetherscribe2026,
+  author = {Mukilan},
+  title = {AetherScribe Lab: Quantum Narrative Intelligence System},
+  year = {2026},
+  version = {6.0},
+  url = {https://github.com/MUKILAN0608/AetherScribe},
+  note = {Explainable multi-agent narrative generation with VQC policy}
+}
+
+24.2 REPRODUCIBILITY CHECKLIST
+--------------------------------------------------------------------------------
+  [ ] Record Python version and requirements.txt hash
+  [ ] Note GOOGLE_API_KEY present (Gemini model version)
+  [ ] Document render_depth (full / standard / fast)
+  [ ] Document sampling vs argmax for action_idx
+  [ ] Save episode log JSON or DB export
+  [ ] Record premise, genre, scene count, character names
+  [ ] Cite PennyLane for quantum components
+
+24.3 SUGGESTED METHODS SENTENCE
+--------------------------------------------------------------------------------
+  "Narratives were generated using AetherScribe Lab (v6.0), in which a
+   variational quantum circuit policy selects joint multi-agent actions before
+   LLM rendering; per-scene posteriors, alternates, and attribution were logged
+   for explainability analysis."
+
+24.4 RELATED REFERENCES
+--------------------------------------------------------------------------------
+  PennyLane — Bergholm et al., quantum differentiable programming
+  Quantum RL — Dong et al., quantum reinforcement learning (2008)
+  Explainable AI — Ribeiro et al., LIME (2016)
+
+================================================================================
+SECTION 25 — GLOSSARY
+================================================================================
+
+  Action space        Set of 16 joint multi-agent action combinations
+  Attribution         Share of quantum influence attributed to each character role
+  Coherence score     LLM-judged alignment of prose with locked actions [0,1]
+  Composite reward    env_reward × coherence_score
+  Counterfactual      Alternate branch not selected; "why not" analysis
+  Director brief      User premise + character names + genre configuration
+  Episode             Full story run from reset to max_steps
+  Joint action        Simultaneous actions for Protagonist, Antagonist, Ally
+  Log entry           One scene's complete diagnostic and story record
+  Measurement         Collapse / sample of one joint action from probs
+  Peak branch P       Maximum posterior among all joint actions
+  Posterior           VQC probability mass on a joint action index
+  Rejection data      Sorted list of non-selected branches with reasons
+  Selected branch P   Posterior on the sampled action_idx used in the story
+  Stochastic sampling np.random.choice(probs) default selection mode
+  Superposition       Distribution over branches before scene measurement
+  Trait biasing       RY rotations from character trait vector
+  VQC                 Variational Quantum Circuit (PennyLane policy)
+
+================================================================================
+SECTION 26 — APPENDIX: COMPLETE JOINT ACTION CATALOG (16 BRANCHES)
+================================================================================
+
+  Index  Protagonist              Antagonist               Ally
+  -----  -----------------------  -----------------------  -----------------------
+  0      Investigate Anomaly      Orchestrate Sabotage     Provide Intelligence
+  1      Confront Directly        Deploy Manipulation      Support Maneuver
+  2      Execute Covert Move      Escalate Threat          Mitigate Danger
+  3      Negotiate Truce          Leverage Corruption      Facilitate Extraction
+  4      Analyze Conflict         Obstruct Information     Reinforce Resolve
+  5      Deploy Countermeasure    Initiate Strike          Sacrifice Safety
+  6      Seek Truth               Weave Deception          Reveal Secret
+  7      Fortify Position         Infiltrate Systems       Signal Rescue
+  8      Breach Perimeter         Trigger Ambush           Disable Security
+  9      Rally Bystanders         Sow Chaos                Protect Civilians
+  10     Decipher Code            Jam Communications       Maintain Link
+  11     Escape Custody           Tighten Grip             Distract Guards
+  12     Incite Rebellion         Exert Control            Lead Vanguard
+  13     Retrieve Artifact        Guard Vault              Bypass Lock
+  14     Heal Wound               Inflict Pain             Provide Shelter
+  15     Final Stand              Unleash Full Might       Last Support
+
+================================================================================
+PART II — PEER-REVIEW / PUBLICATION SUPPLEMENT
+================================================================================
+
+The sections below are what reviewers typically expect in a serious research
+paper on hybrid quantum–classical narrative systems. They are organized so you
+can lift them (with edits) into a manuscript after "Methodology."
+
+IMPORTANT — TWO TABLE TYPES IN THIS PART:
+
+  [ACTUAL CODEBASE]  Values match the current AetherScribe Lab repository
+                     (PennyLane, Streamlit, Gemini defaults, etc.).
+
+  [EMPIRICAL — REPLACE]  Illustrative numbers or study design only. You MUST
+                     replace these with measured results from YOUR experiments,
+                     human study, and hardware you actually used. Do not cite
+                     placeholder tables as real data in a submission.
+
+================================================================================
+SECTION 27 — EXPERIMENTAL SETUP (add after Methodology in your paper)
+================================================================================
+
+This is the most important missing class of content for many draft papers:
+explicit environment, model, quantum stack, training, and hardware.
+
+27.1 DATASET AND STORY ENVIRONMENT [ACTUAL CODEBASE + framing text]
+--------------------------------------------------------------------------------
+
+The framework is evaluated in a SYNTHETIC narrative environment, not a static
+corpus of human-authored novels:
+
+  • StoryEnvironment (environment/story_environment.py) simulates tension,
+    narrative phase (intro / rising / climax), and pairwise relationships
+    (trust, enmity) among protagonist, antagonist, and ally.
+
+  • Genre-conditioned dynamics use GENRE_TENSION_MULTIPLIER
+    (environment/genre_dynamics.py). The Streamlit UI exposes six genres:
+    Thriller, Horror, Comedy, Romance, Drama, Fantasy.
+
+  • Each "episode" is a user-defined director brief: premise text, character
+    names, genre, language, and 6–12 scenes. This is best described as a
+    multi-agent interaction benchmark under controlled narrative physics rather
+    than a fixed downloadable dataset.
+
+  • Prompt templates (llm/prompt_templates.py) encode scene length, premise lock,
+    and quantum-action constraints for the LLM renderer.
+
+Suggested paper wording (adapt):
+
+  "We evaluated the framework across multiple synthetic narrative regimes
+   (fantasy, thriller, mystery-style conflict, drama) using a shared environment
+   with dynamic tension, phase transitions, and evolving inter-character
+   relationships. Each run used custom premises and joint-action branching from
+   a 16-branch quantum policy space."
+
+27.2 LLM CONFIGURATION [ACTUAL CODEBASE]
+--------------------------------------------------------------------------------
+
+The narrative engine is Google Gemini (google-generativeai), not LLaMA / GPT-4
+as the primary path in this repository.
+
+  Parameter              Typical / default in code
+  ---------------------  --------------------------------------------------
+  Primary models         gemini-2.5-flash, fallback gemini-2.0-flash
+  Scene temperature      Passed from app.py: 0.88 (DEFAULT_TEMP)
+  Scene max output       GEMINI_SCENE_OUTPUT_TOKENS = 1536 (story_renderer.py)
+  Min output floor         GEMINI_MIN_OUTPUT_TOKENS = 256 (avoids empty parts)
+  Coherence audit          Separate calls with lower temperature (e.g. 0.3–0.5)
+  Top-p / top-k          Not explicitly set in code — document as "API default"
+                           or add explicit generation_config in your fork.
+
+Optional override: environment variable GEMINI_MODEL (see story_renderer.py).
+
+27.3 QUANTUM FRAMEWORK DETAILS [ACTUAL CODEBASE]
+--------------------------------------------------------------------------------
+
+  Parameter              Value (this repository)
+  ---------------------  --------------------------------------------------
+  Library                PennyLane
+  Backend / simulator    default.mixed (mixed-state simulation)
+  Qubits                 4 (QuantumPolicy.__init__(n_qubits=4))
+  Circuit depth          3 effective layers per wire: RY(state) + RY(traits*π)
+                         + RZ(trainable weights)
+  Encoding               Angle-style RY on normalized state_vec[0..3]
+  Trait biasing          RY(trait_vec[i]*π) on wire i
+  Variational gates      RZ(weights[i]), weights ∈ [0, 2π] after clip
+  Entanglement           No explicit CNOT layer in the current circuit — be
+                         honest in the paper: this is a product-state style
+                         VQC with independent wires unless you extend it.
+  Measurement            qml.probs on all wires → 16 outcomes mapped to
+                         num_actions = 16 joint actions
+  Action selection       Stochastic: np.random.choice(len(probs), p=probs)
+
+If your paper claims "deeper" entanglement, you must first implement it in
+quantum_policy.py and update this table.
+
+27.4 TRAINING / LEARNING CONFIGURATION [ACTUAL CODEBASE — not PPO/Adam]
+--------------------------------------------------------------------------------
+
+The current policy update is a lightweight online rule, not Adam + PPO.
+
+  Parameter              Value / behavior
+  ---------------------  --------------------------------------------------
+  RL paradigm            Online scene-wise update (REINFORCE-style heuristic)
+  Optimizer              None (no Adam); weights += lr * reward * scaling
+  Learning rate (lr)     0.01 default in app.py → QuantumPolicy.update(..., lr)
+  Episodes / epochs      Not batch-trained: one trajectory per "Generate";
+                         weights optionally persist in Streamlit session_state
+  Batch size             N/A (sequential scenes)
+  Reward                 composite_reward = env_reward * coherence_score
+  Exploration (eps)      0.01 passed to compute_step_diagnostics (diagnostics)
+
+If you migrate to PPO / Adam / batched training, replace this subsection with
+your new optimizer table — reviewers will ask for consistency with code.
+
+27.5 HARDWARE CONFIGURATION [EMPIRICAL — REPLACE]
+--------------------------------------------------------------------------------
+
+Reviewers expect a hardware line. Fill in YOUR machine:
+
+  Component        Specification (example — replace)
+  ---------------  ---------------------------------
+  GPU              (e.g. RTX 4060, or "CPU-only")
+  CPU              (e.g. Intel i7-13700H)
+  RAM              (e.g. 32 GB)
+  OS               (e.g. Windows 11 / Ubuntu 22.04)
+  PennyLane backend default.mixed runs on classical simulator (CPU)
+
+Quantum runtime in this repo is classical simulation, not QPU execution unless
+you reconfigure the device.
+
+================================================================================
+SECTION 28 — QUANTUM CIRCUIT ARCHITECTURE FIGURE (for Methodology)
+================================================================================
+
+Reproduce this as a proper figure (TikZ, PowerPoint, or draw.io). Textual
+equivalent for the report:
+
+                    ┌─────────────────────────────────────────┐
+                    │     AetherScribe VQC (one forward pass)   │
+                    └─────────────────────────────────────────┘
+
+   Classical inputs
+   ─────────────────
+   state_vec[0..3]  ──►  RY(θ_state)   on wires 0..3
+   trait_vec[0..3]  ──►  RY(π·trait)  on wires 0..3
+   weights[0..3]    ──►  RZ(φ_var)   on wires 0..3
+
+        wire 0:  |0⟩ ─RY─RY─RZ─ … ─► bit probabilities contribute to P(·)
+        wire 1:  |0⟩ ─RY─RY─RZ─ … ─►
+        wire 2:  |0⟩ ─RY─RY─RZ─ … ─►
+        wire 3:  |0⟩ ─RY─RY─RZ─ … ─►
+
+   Measurement layer
+   ───────────────────
+   qml.probs(wires=[0,1,2,3])  →  vector length 16
+
+   Policy head
+   ───────────
+   Truncate / renormalize to num_actions = 16 joint narrative branches
+   Sample index j ~ Categorical(P)  →  joint_actions[j]
+
+Caption suggestion for your paper:
+
+  "Figure X. Variational quantum policy used in AetherScribe Lab. Narrative
+   state and trait vectors are angle-encoded; trainable RZ phases implement
+   policy parameters. All wires are measured in the computational basis;
+   the resulting 16-outcome distribution maps to the joint action catalog."
+
+================================================================================
+SECTION 29 — ABLATION STUDY (add inside Results; CRITICAL for reviewers)
+================================================================================
+
+29.1 WHY ABLATIONS MATTER
+--------------------------------------------------------------------------------
+
+Without ablations, reviewers may assume "the LLM did everything." You must show
+that quantum policy routing, entropy-aware diagnostics, and/or explainability
+change measurable outcomes (coherence, diversity, stability, human scores).
+
+29.2 SUGGESTED VARIANTS TO IMPLEMENT AND MEASURE
+--------------------------------------------------------------------------------
+
+  Variant                        What to change in code / protocol
+  -----------------------------  -----------------------------------------------
+  Full AetherScribe              Baseline system as shipped
+  Without QRL                    Replace VQC probs with uniform OR frozen random
+                                 OR classical softmax MLP (fair comparison TBD)
+  Without explainability         Omit quantum panel + rationale prompts; measure
+                                 human comprehension only
+  Without entropy / diagnostics  Fix temperature to 0; or remove risk/entropy
+                                 from dashboard and user study prompts
+  Classical RL only              Non-quantum policy with same action space
+  LLM-only planner               Let LLM pick joint actions (violates triad but
+                                 useful negative control)
+
+29.3 EXAMPLE RESULT TABLE [EMPIRICAL — REPLACE — DO NOT CITE AS REAL DATA]
+--------------------------------------------------------------------------------
+
+The numbers below are STRUCTURE EXAMPLES only. Run N≥30 seeds per condition,
+compute mean ± std, then replace.
+
+  Model variant              Mean coherence   Stability (example metric *)
+  -------------------------  ---------------  ------------------------------
+  Full AetherScribe          0.92             93.6%
+  Without QRL                0.85             81.2%
+  Without explainability     0.83             79.8%
+  Without entropy branching  0.80             75.6%
+  Classical RL only          0.78             72.4%
+
+  * Define "stability" operationally: e.g. std(coherence) across scenes lower
+    is better; or action-switch rate; or human-rated consistency.
+
+How to derive coherence from logs: each scene log_entry has "coherence" (LLM
+audit). Aggregate per episode with episode_metrics() in ui/manuscript.py.
+
+================================================================================
+SECTION 30 — STATISTICAL VALIDATION (add after comparative results)
+================================================================================
+
+30.1 RECOMMENDED TESTS
+--------------------------------------------------------------------------------
+
+When comparing Full AetherScribe vs baselines across independent episode seeds:
+
+  • Paired t-test on per-episode mean coherence (same premises, matched seeds)
+  • Wilcoxon signed-rank if normality fails (small N)
+  • Report 95% confidence intervals on the mean difference
+  • Multiple comparisons: Bonferroni or Holm if testing many metrics
+
+30.2 EXAMPLE CLAIM LANGUAGE [EMPIRICAL — REPLACE]
+--------------------------------------------------------------------------------
+
+  "Paired tests across N=30 episode seeds showed significantly higher mean
+   narrative coherence for the full framework versus LLM-only control
+   (p < 0.05, 95% CI [Δ_low, Δ_high]). Branching-quality scores (human or
+   automated) followed the same trend."
+
+You must compute real p-values from your runs — do not fabricate.
+
+================================================================================
+SECTION 31 — HUMAN EVALUATION PROTOCOL (add inside Experimental Setup)
+================================================================================
+
+Narrative papers are weak without human evaluation. Recommended design:
+
+31.1 METRICS (5-point Likert suggested)
+--------------------------------------------------------------------------------
+
+  Metric                    Description
+  ------------------------  ------------------------------------------------
+  Coherence                 Logical flow within and across scenes
+  Character consistency     Actions and dialogue match established traits
+  Explainability            Raters understand why-not text / quantum panel
+  Branching quality         Diversity and appropriateness of alternates
+  Premise adherence         Story respects user premise and locked actions
+
+31.2 PROCEDURE [TEMPLATE]
+--------------------------------------------------------------------------------
+
+  • Recruit K evaluators (e.g. K=25 for stability; minimum often 5–10 pilot)
+  • Each evaluator receives: premise, full manuscript, optional quantum cards
+  • Blind where possible: hide condition labels (A/B between systems)
+  • Inter-rater reliability: Fleiss' κ or Krippendorff's α
+  • Report mean, std, and significance vs baseline
+
+Example sentence (replace K and scale with yours):
+
+  "Twenty-five crowdworkers evaluated 60 episode pairs using a 5-point Likert
+   instrument across coherence, character consistency, explainability, and
+   branching quality, with inter-rater agreement κ = …"
+
+================================================================================
+SECTION 32 — ILLUSTRATIVE NARRATIVE EXAMPLE (add inside Results)
+================================================================================
+
+Papers need concrete traces. Below is a STRUCTURED EXAMPLE aligned with the
+16-branch catalog (indices and posteriors are illustrative).
+
+32.1 INPUT (director brief excerpt) [ILLUSTRATIVE]
+--------------------------------------------------------------------------------
+
+  Premise: "Three operatives converge on a sealed vault under corporate siege."
+  Characters: Arjun (protagonist), Vikram (antagonist), Kavin (ally)
+  Genre: Thriller
+
+32.2 BRANCH POSTERIORS (example) [EMPIRICAL — REPLACE]
+--------------------------------------------------------------------------------
+
+  Branch (index)                    Joint action (short)           P(branch)
+  --------------------------------  -----------------------------  ---------
+  j = 13 (example peak)             Retrieve / Guard / Bypass      0.49
+  j = 3                             Negotiate / Leverage / Extract 0.19
+  j = 0                             Investigate / Sabotage / Intel 0.05
+  j = 2 (example measured)          Covert / Escalate / Mitigate   0.13
+  …                                 (remaining mass on other rows)
+
+32.3 SELECTION AND EXPLAINABILITY [ACTUAL BEHAVIOR + illustrative text]
+--------------------------------------------------------------------------------
+
+  • Measured branch: sampled index j=2 at P=0.13 while peak may be j=13 — this
+    is valid under stochastic policy (see Section 19 of this report).
+
+  • UI shows Selected branch P vs Peak branch P plus sampling note.
+
+  • Why-not for j=13: template + structured paragraph in ui/decisions.py
+    (explain_why_not_chosen) comparing alternate vs measured posteriors.
+
+  • Attribution: e.g. "Trait-channel attribution peaks on Arjun (36%)."
+
+Include in your paper: one screenshot or LaTeX table exported from a real run.
+
+================================================================================
+SECTION 33 — FAILURE CASE ANALYSIS (add before Conclusion)
+================================================================================
+
+Reviewers respect honest failure analysis. Known or plausible failure modes:
+
+  • API / token limits: empty or truncated scenes if max_output_tokens too low
+    or rate limits hit (mitigated by GEMINI_MIN_OUTPUT_TOKENS and retries).
+
+  • High-entropy episodes: semantically weak transitions when many branches
+    carry similar mass and sampling jumps frequently.
+
+  • Coherence auditor noise: borderline scores when premise is underspecified.
+
+  • Name drift: rare role-label leakage if prompts are weakened (mitigated by
+    name_map and post-checks where implemented).
+
+  • Simulator-only quantum: findings may not transfer to noisy QPUs without
+    hardware validation.
+
+  • Stochastic measurement confusion: readers misread posteriors unless UI
+    legend is present (addressed in v6.0 panel).
+
+Document 1–2 concrete failure episodes from your logs with redacted text.
+
+================================================================================
+SECTION 34 — COMPLEXITY AND SCALABILITY ANALYSIS (add inside Methodology)
+================================================================================
+
+Order-of-growth sketch (classical simulation of VQC):
+
+  Module                    Complexity notes
+  ------------------------  --------------------------------------------------
+  State encoding            O(d) for d=4 features
+  Single VQC forward        O(n_qubits * depth); here n=4, depth constant
+  Sensitivity (full_explain) O(d * forward) finite-difference style
+  Episode length            O(T) scenes, T ≤ 12 typical
+  LLM cost                  Dominates wall-clock: O(T) * (scene + summary +
+                            coherence + optional rejections)
+  Joint action space        Fixed |A| = 16 today; scaling to |A| product of
+                            per-role catalogs grows multiplicatively
+
+Inference cost: dominated by Gemini calls per scene (full render_depth incurs
+multiple calls). Quantum simulation cost is comparatively small on CPU.
+
+================================================================================
+SECTION 35 — LIMITATIONS (add before Conclusion)
+================================================================================
+
+  • Simulator-based quantum execution (default.mixed), not hardware QPU claims.
+  • Small discrete action space (16 joint branches) vs open-ended natural
+    language action spaces.
+  • Single-policy update rule — not validated against SOTA deep RL baselines.
+  • LLM and prompt sensitivity — model updates at Google may shift behavior.
+  • Human evaluation cost and bias if only English or narrow demographic.
+  • Reproducibility: API temperature and sampling yield non-deterministic runs
+    unless seeds fixed everywhere (including API determinism flags if any).
+
+================================================================================
+SECTION 36 — BENCHMARK AND RELATED-WORK COMPARISON (add inside Results)
+================================================================================
+
+Position AetherScribe against categories (cite real papers in your submission):
+
+  System class              Examples (literature — verify citations)
+  ------------------------  -----------------------------------------------
+  LLM-only storytelling     PlotMachines, Weizenbaum-style chat, long-context
+                            planners (your survey)
+  Retrieval + generation    RAG story systems
+  Classical RL narrative    DRL for plot or dialogue (cite specific works)
+  Interactive fiction       Choice-based engines without quantum policy
+  Explainable NLG           LIME/SHAP on classifiers — different modality
+
+StoryGPT / similar product names: use only if you have a concrete arXiv or
+product paper to cite; prefer peer-reviewed baselines your institution accepts.
+
+Comparison dimensions: controllability, explainability, reproducibility, cost,
+diversity metrics, human ratings.
+
+================================================================================
+SECTION 37 — REPRODUCIBILITY (expanded; near Conclusion)
+================================================================================
+
+Top-tier venues expect explicit reproducibility:
+
+  [ ] Public code: GitHub tag / Zenodo DOI for exact snapshot
+  [ ] requirements.txt hash or conda lockfile
+  [ ] Python version
+  [ ] GOOGLE_API_KEY not in repo; document how to obtain access
+  [ ] Random seeds: numpy, PennyLane, and (if possible) Gemini generation
+  [ ] Log render_depth, lr, eps, temperature for every experiment table
+  [ ] Export episode JSON for each reported figure
+  [ ] Human study protocol IRB / consent if applicable
+  [ ] List GPU/CPU in hardware table (Section 27.5)
+
+Repository defaults today: app.py DEFAULT_LR, DEFAULT_EPS, DEFAULT_TEMP;
+EpisodeRunner render_depth="full" for UI Generate.
+
+================================================================================
+END OF REPORT
+================================================================================
+
+Document   : AETHERSCRIBE_FULL_PROJECT_REPORT.txt
+Product    : AetherScribe Lab v6.0 Master Render Edition
+Maintainer : AetherScribe Research
+GitHub     : https://github.com/MUKILAN0608/AetherScribe
+
+For interactive documentation see README.md.
+For architecture summary see TECHNICAL_SPEC.md.
+For legacy extended notes see DETAILED_SYSTEM_FUNCTIONALITY.txt.
+
+================================================================================

@@ -29,9 +29,36 @@ class MockRenderer:
         lite_mode=False,
     ):
         step = state.get("step", 0)
+        characters = state.get("director_brief", {}).get("characters", {})
+        protagonist = characters.get("protagonist", "Hero")
+        antagonist = characters.get("antagonist", "Villain")
+        ally = characters.get("ally", "Friend")
+        event = (
+            f"{protagonist} checks the archive index while {antagonist} blocks the records room."
+            if step == 0
+            else f"{protagonist} follows the service route while {antagonist} guards the next barrier."
+            if step == 1
+            else f"{protagonist} presents the verified clue while {antagonist} faces the evidence."
+        )
+        consequence = (
+            f"{ally} identifies a safe route for {protagonist}."
+            if step == 0
+            else f"{antagonist} loses ground as {protagonist} reaches the next barrier."
+            if step == 1
+            else f"{protagonist} secures the evidence and {antagonist} can no longer block the inquiry."
+        )
+        ally_event = (
+            f"{ally} confirms the archive route exists."
+            if step == 0
+            else f"{ally} confirms the service circuit is active."
+            if step == 1
+            else f"{ally} verifies the evidence reached an independent reviewer."
+        )
         story = (
             f"[SCENE {step}]\nNARRATIVE:\n"
-            f"Mock narrative in {language} ({mode}) for {actions} at tension {state['tension']:.2f}.\n\n"
+            f"{event} "
+            f"{ally_event} "
+            f"{consequence}\n\n"
             f"[QUANTUM_TRACE]\nMock decision trace."
         )
         summary = "Mock summary for continuity."

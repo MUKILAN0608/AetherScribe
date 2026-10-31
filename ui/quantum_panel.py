@@ -15,7 +15,7 @@ def render_quantum_explain_panel(rec: dict):
         (f'{rec["entropy"]:.2f}', "Entropy"),
         (f'{rec["risk"]:.2f}', "Risk"),
         (f'{rec["clarity"]:.2f}', "Margin ΔP"),
-        (f'{rec["coherence"]:.2f}', "Coherence"),
+        (f'{rec["coherence"]:.2f}' if rec["coherence"] is not None else "—", "Coherence"),
     ]
     metric_parts = []
     for val, lbl in metric_defs:
