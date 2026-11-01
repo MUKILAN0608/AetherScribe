@@ -27,6 +27,12 @@ _INTERNAL_MARKERS = (
     "this event involves",
     "scene number:",
     "write exactly",
+    "selected_probability",
+    "posterior mass",
+    "action_id:",
+    "scene contract:",
+    "policy metadata",
+    "decision trace:",
 )
 
 _GENERIC_FALLBACK_MARKERS = (
@@ -39,6 +45,56 @@ _GENERIC_FALLBACK_MARKERS = (
 
 
 @dataclass(frozen=True)
+class ValidationError:
+    code: str
+    category: str
+    scene_id: str
+    severity: str
+    message: str
+    evidence: str
+    expected: str
+    actual: str
+    repair_suggestion: str
+    retry_permitted: bool
+
+
+def _validation_errors(issues, scene_index, text):
+    categories = {
+        "truncated_output": "truncation", "scene_above_maximum_length": "length",
+        "scene_below_minimum_length": "length", "repeated_scene_opening": "narrative_quality",
+        "repeated_sentence": "narrative_quality", "similar_scene": "narrative_quality",
+        "missing_user_facing_content": "structure", "internal_metadata_leak": "action_to_prose_leakage",
+        "internal_action_label_leak": "action_to_prose_leakage", "unsupported_location": "continuity",
+        "unsupported_time_jump": "continuity", "premise_restatement": "causal_progression",
+        "duplicate_sentence": "narrative_quality", "generic_fallback_text": "structure",
+    }
+    messages = {
+        "truncated_output": ("Output ended before a complete sentence.", "Complete final sentence", "Incomplete or absent ending"),
+        "repeated_scene_opening": ("Opening repeats an earlier scene.", "Distinct opening", "Overlapping opening"),
+        "scene_above_maximum_length": ("Scene exceeds the configured word limit.", "Within configured limit", "Over limit"),
+        "scene_below_minimum_length": ("Scene is shorter than the configured minimum.", "At least configured minimum", "Under minimum"),
+        "missing_user_facing_content": ("No reader-facing narrative was produced.", "Non-empty narrative", "Empty narrative"),
+        "internal_metadata_leak": ("Internal planning metadata leaked into prose.", "Reader-facing prose", "Internal marker present"),
+        "internal_action_label_leak": ("An internal action label leaked into prose.", "Natural-language realization", "Encoded action label present"),
+        "unsupported_location": ("The prose introduces an unsupported location.", "Established location", "New location asserted"),
+        "unsupported_time_jump": ("The prose introduces an unsupported time jump.", "Established timeline", "Unplanned year asserted"),
+        "premise_restatement": ("The scene restates the premise instead of progressing it.", "New causal progression", "Premise overlap"),
+        "duplicate_sentence": ("The scene repeats a sentence.", "Unique sentences", "Duplicate sentence"),
+        "generic_fallback_text": ("Generic fallback prose was detected.", "Specific scene prose", "Generic template marker"),
+    }
+    result = []
+    for issue in dict.fromkeys(issues):
+        code = issue.split(":", 1)[0]
+        message, expected, actual = messages.get(code, (issue.replace("_", " ").capitalize(), "Satisfy scene contract", issue))
+        result.append(ValidationError(
+            code=code, category=categories.get(code, "continuity"), scene_id=f"scene-{scene_index + 1:04d}",
+            severity="error", message=message, evidence=text[:240], expected=expected, actual=actual,
+            repair_suggestion=_correction_instruction((issue,)), retry_permitted=True,
+        ))
+    return tuple(result)
+
+
+@dataclass(frozen=True)
 class SceneQuality:
     accepted: bool
     continuity: ContinuityValidation
@@ -48,6 +104,7 @@ class SceneQuality:
     retry_required: bool = True
     correction_instruction: str = ""
     word_count: int = 0
+    errors: tuple[ValidationError, ...] = ()
 
 
 def _narrative_body(text: str) -> str:
@@ -69,6 +126,7 @@ def validate_scene_output(
     max_words: int | None = None,
     required_terms: tuple[str, ...] = (),
     premise: str = "",
+    forbidden_internal_terms: tuple[str, ...] = (),
 ) -> SceneQuality:
     """Run the bounded final gate immediately before a scene is accepted."""
     continuity = validate_scene_text(text, scene_index, characters)
@@ -77,6 +135,17 @@ def validate_scene_output(
     issues = list(continuity.issues)
     if any(marker in body for marker in _INTERNAL_MARKERS):
         issues.append("internal_metadata_leak")
+    if re.search(r"\b(?:the\s+)?(?:protagonist|antagonist|ally)\b", body, re.I):
+        issues.append("internal_metadata_leak")
+    # Encoded action identifiers are internal control signals. Match them
+    # dynamically from the locked action; do not maintain a story vocabulary.
+    for term in forbidden_internal_terms:
+        term = str(term).strip()
+        if not term or not re.search(r"[_:/#]", term):
+            continue
+        if re.search(rf"(?<!\w){re.escape(term.casefold())}(?!\w)", body):
+            issues.append("internal_action_label_leak")
+            break
     if any(marker in body for marker in _GENERIC_FALLBACK_MARKERS):
         issues.append("generic_fallback_text")
     if re.search(r"\b(?:city|town|village|country|skyscraper)\s+of\s+[A-Z][a-z]+", _narrative_body(text)):
@@ -144,6 +213,7 @@ def validate_scene_output(
         retry_required=bool(issues),
         correction_instruction=correction,
         word_count=len(words),
+        errors=_validation_errors(tuple(dict.fromkeys(issues)), scene_index, body),
     )
 
 
@@ -160,6 +230,7 @@ def _correction_instruction(issues: list[str]) -> str:
         "duplicate_sentence": "Replace duplicated sentences with a distinct development.",
         "truncated_output": "Finish the final sentence and keep the complete scene within the word limit.",
         "internal_metadata_leak": "Remove all internal instructions, traces, and provider metadata from the narrative.",
+        "internal_action_label_leak": "Translate the selected action into natural prose; remove its encoded internal identifier.",
         "repeated_narrative_beat": "Advance the conflict with a new event while preserving the locked action.",
         "repeated_sentence": "Replace repeated prose with a new event from this scene's plan.",
         "opening_too_short": "Write at least three complete sentences for the opening scene.",
@@ -192,6 +263,16 @@ def validate_story_ending(text: str, characters: dict) -> tuple[bool, tuple[str,
             issues.append(f"final_scene_missing_{role}")
     if len(re.findall(r"\b[\w'-]+\b", body)) < 30:
         issues.append("final_scene_too_short")
-    if not re.search(r"\b(resolved|ended|changed|settled|survived|escaped|defeated|reconciled|outcome|consequence)\b", body, re.I):
+    if not re.search(r"\b(resolv(?:e|es|ed|ing)|end(?:s|ed|ing)?|chang(?:e|es|ed|ing)|settled|surviv(?:e|es|ed|ing)|escap(?:e|es|ed|ing)|defeat(?:s|ed|ing)?|reconcil(?:e|es|ed|ing)|outcome|consequence)\b", body, re.I):
         issues.append("final_scene_lacks_resolution_signal")
+    if re.search(
+        r"\b(?:remains? unanswered|still unanswered|remains? unresolved|still unresolved|"
+        r"loomed larger|what would (?:they|she|he|we) do|what comes next|what came next|"
+        r"face what comes next|impact unknown|outcome hanging on|answer.{0,50}(?:lies|lay) within|"
+        r"(?:decision|choice) that (?:awaits?|remains to be made)|"
+        r"(?:central question|outcome|consequence).{0,120}\b(?:either|unknown|uncertain|awaited|or|versus)\b|"
+        r"no answer (?:came|followed))\b",
+        body, re.I,
+    ):
+        issues.append("final_scene_explicitly_unresolved")
     return not issues, tuple(issues)

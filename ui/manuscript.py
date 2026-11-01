@@ -27,7 +27,7 @@ def parse_scene_story(story_text: str) -> Tuple[str, str]:
 
 def compile_full_manuscript(episode: dict) -> str:
     paragraphs = []
-    for scene in episode["scenes"]:
+    for scene in _accepted_scenes(episode):
         prose, _ = parse_scene_story(scene["story"])
         if prose:
             sequence = int(scene.get("step", len(paragraphs))) + 1
@@ -51,7 +51,21 @@ def compile_plain_text_export(episode: dict) -> str:
         "=" * 48,
         "",
     ]
-    for i, scene in enumerate(episode["scenes"], 1):
+    blocked = episode.get("blocked_scene_indices", [])
+    if episode.get("status", "partial") != "complete":
+        missing = sorted(set(range(requested)) - {int(scene.get("step", -1)) for scene in _accepted_scenes(episode)})
+        lines.extend([
+            f"Partial manuscript: {metrics['scene_count']} accepted, {episode.get('failed_scene_count', 0)} failed, "
+            f"{len(blocked)} blocked; missing scene numbers: "
+            + (", ".join(str(index + 1) for index in missing) or "none"),
+            "Completion conditions: " + ", ".join(
+                key.replace("_", " ")
+                for key, passed in (episode.get("completion_conditions") or {}).items()
+                if not passed
+            ) if episode.get("completion_conditions") else "",
+            "",
+        ])
+    for i, scene in enumerate(_accepted_scenes(episode), 1):
         prose, _ = parse_scene_story(scene["story"])
         sequence = int(scene.get("step", i - 1)) + 1
         requested = int(episode.get("requested_scene_count", episode.get("scenes_count", len(episode["scenes"]))))
@@ -61,7 +75,7 @@ def compile_plain_text_export(episode: dict) -> str:
 
 
 def episode_metrics(episode: dict) -> dict:
-    scenes = episode["scenes"]
+    scenes = _accepted_scenes(episode)
     coherences = [
         float(s["coherence"])
         for s in scenes
@@ -76,6 +90,22 @@ def episode_metrics(episode: dict) -> dict:
         "scene_count": len(scenes),
         "mean_entropy": float(np.mean([s["entropy"] for s in scenes])) if scenes else 0.0,
     }
+
+
+def _accepted_scenes(episode: dict) -> list[dict]:
+    """Return unique accepted scene records in planned order for reader exports."""
+    scenes = []
+    seen_steps = set()
+    for scene in sorted(episode.get("scenes", []), key=lambda item: int(item.get("step", 0))):
+        quality = scene.get("quality_gate")
+        if isinstance(quality, dict) and not quality.get("accepted", False):
+            continue
+        step = int(scene.get("step", len(scenes)))
+        if step in seen_steps:
+            continue
+        seen_steps.add(step)
+        scenes.append(scene)
+    return scenes
 
 
 def relationship_note(role: str, relationships: dict) -> str:
@@ -159,7 +189,7 @@ def generate_manuscript_latex(episode: dict) -> str:
         f"Cumulative utility: {metrics['cumulative_utility']:.3f}.",
         "\\section{Rendered Narrative}",
     ]
-    for s in episode["scenes"]:
+    for s in _accepted_scenes(episode):
         prose, _ = parse_scene_story(s["story"])
         safe = prose.replace("&", "\\&").replace("%", "\\%")
         latex.append(f"\\subsection*{{Scene {s['step'] + 1}}} {safe}")

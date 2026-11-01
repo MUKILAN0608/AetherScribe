@@ -14,6 +14,7 @@ import urllib.request
 from urllib.parse import urlparse
 import atexit
 import subprocess
+import tempfile
 from dataclasses import dataclass
 from typing import Any, Mapping, Protocol
 
@@ -360,6 +361,7 @@ class LlamaCppServerProvider(OpenAICompatibleLocalProvider):
         self.threads = threads
         self.context_size = context_size
         self.process: subprocess.Popen[str] | None = None
+        self._server_log = tempfile.TemporaryFile(mode="w+b")
         self._start_server()
         atexit.register(self.close)
 
@@ -381,20 +383,38 @@ class LlamaCppServerProvider(OpenAICompatibleLocalProvider):
             command.extend(["--device", device])
         try:
             self.process = subprocess.Popen(
-                command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                command, stdout=self._server_log, stderr=self._server_log,
                 text=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
         except OSError as exc:
             raise RuntimeError(f"Unable to start llama-server: {exc}") from exc
-        deadline = time.monotonic() + min(self.timeout_seconds, 20.0)
+        startup_timeout = max(1.0, float(os.getenv("LOCAL_LLM_STARTUP_TIMEOUT_SECONDS", "180")))
+        deadline = time.monotonic() + startup_timeout
         while time.monotonic() < deadline:
             if self.process.poll() is not None:
-                raise RuntimeError("llama-server exited while loading the GGUF model.")
+                details = self._server_diagnostics()
+                self.close()
+                raise RuntimeError("llama-server exited while loading the GGUF model." + details)
             if self.health_check().get("available"):
                 return
             time.sleep(0.25)
+        details = self._server_diagnostics()
         self.close()
-        raise RuntimeError("Timed out waiting for llama-server to become ready.")
+        raise RuntimeError(
+            f"Timed out waiting {startup_timeout:g}s for llama-server to become ready."
+            + details
+        )
+
+    def _server_diagnostics(self) -> str:
+        try:
+            self._server_log.flush()
+            self._server_log.seek(0, os.SEEK_END)
+            size = self._server_log.tell()
+            self._server_log.seek(max(0, size - 8192))
+            output = self._server_log.read().decode("utf-8", errors="replace").strip()
+            return f" Server output: {output[-6000:]}" if output else " No server output was captured."
+        except (OSError, ValueError):
+            return " Server diagnostics could not be read."
 
     def close(self) -> None:
         if self.process is not None and self.process.poll() is None:
@@ -404,6 +424,8 @@ class LlamaCppServerProvider(OpenAICompatibleLocalProvider):
             except subprocess.TimeoutExpired:
                 self.process.kill()
         self.process = None
+        if self._server_log is not None and not self._server_log.closed:
+            self._server_log.close()
 
 
 class ProviderRouter:
@@ -420,6 +442,7 @@ class ProviderRouter:
             self.provider: LocalLLMProvider = self._configured_provider()
         except RuntimeError as exc:
             self.provider_error = str(exc)
+            self.provider = self.fallback
             logger.warning("Configured narrative provider unavailable: %s", exc)
             self.provider = self.fallback
 
@@ -510,6 +533,17 @@ class ProviderRouter:
         health["endpoint"] = getattr(self.provider, "base_url", None)
         if self.provider_error:
             health["state"] = "provider_error"
+            health["available"] = False
+            health["model_verified"] = False
+            health["provider"] = self.requested_provider
+            configured_model = os.getenv("LOCAL_LLM_MODEL_NAME", "").strip()
+            if configured_model.casefold() in {"", "auto", "local-model"}:
+                model_path = os.getenv("LOCAL_LLM_MODEL_PATH", "").strip()
+                configured_model = os.path.basename(model_path).removesuffix(".gguf") or configured_model
+            health["configured_model"] = configured_model
+            configured_url = os.getenv("LOCAL_LLM_BASE_URL", "").strip() or os.getenv("LOCAL_LLM_ENDPOINT", "").strip()
+            health["endpoint"] = configured_url or health.get("endpoint")
+            health["model"] = health["configured_model"] or "configured local model"
         return health
 
     def generate(self, prompt: str, config: GenerationConfig) -> GenerationResult:

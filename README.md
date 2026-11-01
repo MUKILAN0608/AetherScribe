@@ -530,6 +530,10 @@ See also `TECHNICAL_SPEC.md` and `DETAILED_SYSTEM_FUNCTIONALITY.txt`.
 
 ## Development
 
+### Narrative coordination and world research stages
+
+Stages 4–8 provide versioned coordinator commits, a structured world snapshot with USDA text export, a read-only visual-observer adapter, explicitly hypothetical future branches, and event-grounded character adaptation. Their current capabilities and environmental limits are documented in [STAGES_4_8_IMPLEMENTATION.md](STAGES_4_8_IMPLEMENTATION.md). OpenUSD SDK, Omniverse, and semantic vision support are optional; the app reports unavailable integrations instead of simulating them.
+
 ```bash
 python tests/verify_system.py
 python experiments/run_single_episode.py

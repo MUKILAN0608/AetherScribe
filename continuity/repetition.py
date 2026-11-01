@@ -16,6 +16,12 @@ def _opening(text: str) -> str:
     return _normalize(" ".join(sentences[:1]))[:180]
 
 
+def _opening_similarity(left: str, right: str) -> float:
+    left_tokens = set(re.findall(r"[a-z0-9]{3,}", _normalize(left)))
+    right_tokens = set(re.findall(r"[a-z0-9]{3,}", _normalize(right)))
+    return len(left_tokens & right_tokens) / len(left_tokens | right_tokens) if left_tokens and right_tokens else 0.0
+
+
 def _tokens(text: str) -> set[str]:
     return set(re.findall(r"[a-z0-9]{3,}", _normalize(_body(text))))
 
@@ -33,6 +39,7 @@ class RepetitionResult:
     repeated: bool
     reasons: tuple[str, ...] = ()
     similarity: float = 0.0
+    matched_opening: str = ""
 
 
 def check_repetition(text: str, prior: list[dict], action_beat: str = "") -> RepetitionResult:
@@ -42,6 +49,7 @@ def check_repetition(text: str, prior: list[dict], action_beat: str = "") -> Rep
     current_sentences = _sentences(text)
     reasons = []
     best_similarity = 0.0
+    matched_opening = ""
     for item in prior[-8:]:
         previous = item.get("story", "")
         normalized_previous = _normalize(_body(previous))
@@ -57,8 +65,19 @@ def check_repetition(text: str, prior: list[dict], action_beat: str = "") -> Rep
         best_similarity = max(best_similarity, similarity)
         if similarity >= 0.82:
             reasons.append("similar_scene")
-        if current_opening and current_opening == item.get("opening", "") and similarity >= 0.65:
+        prior_opening = _normalize(item.get("opening", ""))
+        opening_similarity = _opening_similarity(current_opening, prior_opening)
+        shared_opening_tokens = set(re.findall(r"[a-z0-9]{3,}", current_opening)) & set(
+            re.findall(r"[a-z0-9]{3,}", prior_opening)
+        )
+        if current_opening and prior_opening and (
+            (current_opening == prior_opening and similarity >= 0.65)
+            or (len(shared_opening_tokens) >= 6 and opening_similarity >= 0.35)
+        ):
             reasons.append("repeated_scene_opening")
+            sentence = re.split(r"(?<=[.!?])\s+", _body(previous), maxsplit=1)[0].strip()
+            if sentence:
+                matched_opening = sentence
         if action_beat and action_beat == item.get("beat", ""):
             reasons.append("repeated_narrative_beat")
-    return RepetitionResult(bool(reasons), tuple(dict.fromkeys(reasons)), best_similarity)
+    return RepetitionResult(bool(reasons), tuple(dict.fromkeys(reasons)), best_similarity, matched_opening)

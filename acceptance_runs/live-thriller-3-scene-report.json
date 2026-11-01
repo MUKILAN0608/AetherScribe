@@ -1,0 +1,1360 @@
+{
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "contracts_cover_every_planned_scene": true,
+      "accepted_scenes_are_unique_and_ordered": true,
+      "only_accepted_scenes_are_exportable": true,
+      "selected_actions_have_valid_vqc_provenance": true,
+      "dependencies_require_accepted_predecessors": true,
+      "failed_scenes_do_not_commit": true,
+      "failure_blocks_dependents": true,
+      "attempted_and_failed_counts_match_records": true,
+      "episode_status_matches_progress": true,
+      "contract_status_matches_scene_progress": true,
+      "manuscript_has_no_internal_trace_markup": true,
+      "completion_requires_all_scenes_and_ending": true
+    },
+    "failed_checks": [],
+    "requested_scene_count": 3,
+    "attempted_scene_count": 3,
+    "accepted_scene_count": 3,
+    "failed_scene_count": 0,
+    "blocked_scene_indices": [],
+    "status": "complete"
+  },
+  "full_episode_complete": true,
+  "provider": "local-endpoint",
+  "model": "models/OLMoE-1B-7B-0125-Instruct.Q4_K_M.gguf",
+  "provider_error": null,
+  "premise": "Mira investigates a silent archive where Voss has sealed the records and Nia knows how the old index was altered.",
+  "genre": "thriller",
+  "characters": {
+    "protagonist": "Mira",
+    "antagonist": "Voss",
+    "ally": "Nia"
+  },
+  "scene_contracts": [
+    {
+      "scene_id": "scene-0001",
+      "sequence": 1,
+      "phase": "opening",
+      "purpose": "Scene 1: Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+      "required_characters": [
+        "Mira",
+        "Voss",
+        "Nia"
+      ],
+      "starting_state_version": 0,
+      "starting_facts": [],
+      "character_goals": {
+        "Mira": "Pursue the role established for protagonist.",
+        "Voss": "Pursue the role established for antagonist.",
+        "Nia": "Pursue the role established for ally."
+      },
+      "character_knowledge": {
+        "Mira": [],
+        "Voss": [],
+        "Nia": []
+      },
+      "character_beliefs": {
+        "Mira": [],
+        "Voss": [],
+        "Nia": []
+      },
+      "character_relationships": {
+        "Mira": {},
+        "Voss": {},
+        "Nia": {}
+      },
+      "character_conditions": {
+        "Mira": {
+          "condition": "unestablished",
+          "location": "",
+          "emotional_state": "unestablished"
+        },
+        "Voss": {
+          "condition": "unestablished",
+          "location": "",
+          "emotional_state": "unestablished"
+        },
+        "Nia": {
+          "condition": "unestablished",
+          "location": "",
+          "emotional_state": "unestablished"
+        }
+      },
+      "established_objects": [],
+      "active_conflicts": [],
+      "location": "Established setting",
+      "required_event": "Mira makes an irreversible first move in response to the central situation.",
+      "required_evidence": [],
+      "dependencies": [],
+      "dependency_policy": "all listed scenes must be accepted",
+      "allowed_revelations": [],
+      "forbidden_revelations": [],
+      "expected_ending_state": "That choice creates a cost or obligation that changes the next available move.",
+      "next_scene_effect": "That choice creates a cost or obligation that changes the next available move.",
+      "continuity_constraints": [],
+      "resolution_conditions": [],
+      "action_candidates": [
+        {
+          "action_id": "scene-0001:intent-00",
+          "actions": {
+            "Protagonist": "pursues Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+            "Antagonist": "resists Establish Mira's concrete goal, personal stake, and the premise's immediate disruption. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "supports the objective by Nia contributes only through established abilities, knowledge, or relationship stakes."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "opening premise is loaded"
+          ],
+          "expected_effect": "That choice creates a cost or obligation that changes the next available move.",
+          "narrative_purpose": "Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+          "risks": [
+            "current tension=0.300",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0001:intent-01",
+          "actions": {
+            "Protagonist": "pursues Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+            "Antagonist": "resists Establish Mira's concrete goal, personal stake, and the premise's immediate disruption. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "helps bring about Mira makes an irreversible first move in response to the central situation."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "opening premise is loaded"
+          ],
+          "expected_effect": "That choice creates a cost or obligation that changes the next available move.",
+          "narrative_purpose": "Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+          "risks": [
+            "current tension=0.300",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0001:intent-02",
+          "actions": {
+            "Protagonist": "pursues Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+            "Antagonist": "resists Establish Mira's concrete goal, personal stake, and the premise's immediate disruption. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "carries support into That choice creates a cost or obligation that changes the next available move."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "opening premise is loaded"
+          ],
+          "expected_effect": "That choice creates a cost or obligation that changes the next available move.",
+          "narrative_purpose": "Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+          "risks": [
+            "current tension=0.300",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0001:intent-03",
+          "actions": {
+            "Protagonist": "pursues Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+            "Antagonist": "resists Establish Mira's concrete goal, personal stake, and the premise's immediate disruption. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "manages the risk by responding to That choice creates a cost or obligation that changes the next available move."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "opening premise is loaded"
+          ],
+          "expected_effect": "That choice creates a cost or obligation that changes the next available move.",
+          "narrative_purpose": "Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+          "risks": [
+            "current tension=0.300",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0001:intent-04",
+          "actions": {
+            "Protagonist": "pursues Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+            "Antagonist": "presses against Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+            "Ally": "supports the objective by Nia contributes only through established abilities, knowledge, or relationship stakes."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "opening premise is loaded"
+          ],
+          "expected_effect": "That choice creates a cost or obligation that changes the next available move.",
+          "narrative_purpose": "Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+          "risks": [
+            "current tension=0.300",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0001:intent-05",
+          "actions": {
+            "Protagonist": "pursues Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+            "Antagonist": "presses against Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+            "Ally": "helps bring about Mira makes an irreversible first move in response to the central situation."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "opening premise is loaded"
+          ],
+          "expected_effect": "That choice creates a cost or obligation that changes the next available move.",
+          "narrative_purpose": "Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+          "risks": [
+            "current tension=0.300",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0001:intent-06",
+          "actions": {
+            "Protagonist": "pursues Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+            "Antagonist": "presses against Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+            "Ally": "carries support into That choice creates a cost or obligation that changes the next available move."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "opening premise is loaded"
+          ],
+          "expected_effect": "That choice creates a cost or obligation that changes the next available move.",
+          "narrative_purpose": "Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+          "risks": [
+            "current tension=0.300",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0001:intent-07",
+          "actions": {
+            "Protagonist": "pursues Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+            "Antagonist": "presses against Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+            "Ally": "manages the risk by responding to That choice creates a cost or obligation that changes the next available move."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "opening premise is loaded"
+          ],
+          "expected_effect": "That choice creates a cost or obligation that changes the next available move.",
+          "narrative_purpose": "Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+          "risks": [
+            "current tension=0.300",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0001:intent-08",
+          "actions": {
+            "Protagonist": "responds to Mira makes an irreversible first move in response to the central situation.",
+            "Antagonist": "resists Establish Mira's concrete goal, personal stake, and the premise's immediate disruption. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "supports the objective by Nia contributes only through established abilities, knowledge, or relationship stakes."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "opening premise is loaded"
+          ],
+          "expected_effect": "That choice creates a cost or obligation that changes the next available move.",
+          "narrative_purpose": "Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+          "risks": [
+            "current tension=0.300",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0001:intent-09",
+          "actions": {
+            "Protagonist": "responds to Mira makes an irreversible first move in response to the central situation.",
+            "Antagonist": "resists Establish Mira's concrete goal, personal stake, and the premise's immediate disruption. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "helps bring about Mira makes an irreversible first move in response to the central situation."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "opening premise is loaded"
+          ],
+          "expected_effect": "That choice creates a cost or obligation that changes the next available move.",
+          "narrative_purpose": "Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+          "risks": [
+            "current tension=0.300",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0001:intent-10",
+          "actions": {
+            "Protagonist": "responds to Mira makes an irreversible first move in response to the central situation.",
+            "Antagonist": "resists Establish Mira's concrete goal, personal stake, and the premise's immediate disruption. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "carries support into That choice creates a cost or obligation that changes the next available move."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "opening premise is loaded"
+          ],
+          "expected_effect": "That choice creates a cost or obligation that changes the next available move.",
+          "narrative_purpose": "Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+          "risks": [
+            "current tension=0.300",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0001:intent-11",
+          "actions": {
+            "Protagonist": "responds to Mira makes an irreversible first move in response to the central situation.",
+            "Antagonist": "resists Establish Mira's concrete goal, personal stake, and the premise's immediate disruption. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "manages the risk by responding to That choice creates a cost or obligation that changes the next available move."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "opening premise is loaded"
+          ],
+          "expected_effect": "That choice creates a cost or obligation that changes the next available move.",
+          "narrative_purpose": "Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+          "risks": [
+            "current tension=0.300",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0001:intent-12",
+          "actions": {
+            "Protagonist": "responds to Mira makes an irreversible first move in response to the central situation.",
+            "Antagonist": "presses against Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+            "Ally": "supports the objective by Nia contributes only through established abilities, knowledge, or relationship stakes."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "opening premise is loaded"
+          ],
+          "expected_effect": "That choice creates a cost or obligation that changes the next available move.",
+          "narrative_purpose": "Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+          "risks": [
+            "current tension=0.300",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0001:intent-13",
+          "actions": {
+            "Protagonist": "responds to Mira makes an irreversible first move in response to the central situation.",
+            "Antagonist": "presses against Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+            "Ally": "helps bring about Mira makes an irreversible first move in response to the central situation."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "opening premise is loaded"
+          ],
+          "expected_effect": "That choice creates a cost or obligation that changes the next available move.",
+          "narrative_purpose": "Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+          "risks": [
+            "current tension=0.300",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0001:intent-14",
+          "actions": {
+            "Protagonist": "responds to Mira makes an irreversible first move in response to the central situation.",
+            "Antagonist": "presses against Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+            "Ally": "carries support into That choice creates a cost or obligation that changes the next available move."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "opening premise is loaded"
+          ],
+          "expected_effect": "That choice creates a cost or obligation that changes the next available move.",
+          "narrative_purpose": "Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+          "risks": [
+            "current tension=0.300",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0001:intent-15",
+          "actions": {
+            "Protagonist": "responds to Mira makes an irreversible first move in response to the central situation.",
+            "Antagonist": "presses against Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+            "Ally": "manages the risk by responding to That choice creates a cost or obligation that changes the next available move."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "opening premise is loaded"
+          ],
+          "expected_effect": "That choice creates a cost or obligation that changes the next available move.",
+          "narrative_purpose": "Establish Mira's concrete goal, personal stake, and the premise's immediate disruption.",
+          "risks": [
+            "current tension=0.300",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        }
+      ],
+      "status": "accepted"
+    },
+    {
+      "scene_id": "scene-0002",
+      "sequence": 2,
+      "phase": "escalation",
+      "purpose": "Scene 2: Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+      "required_characters": [
+        "Mira",
+        "Voss",
+        "Nia"
+      ],
+      "starting_state_version": 1,
+      "starting_facts": [],
+      "character_goals": {
+        "Mira": "Pursue the role established for protagonist.",
+        "Voss": "Pursue the role established for antagonist.",
+        "Nia": "Pursue the role established for ally."
+      },
+      "character_knowledge": {
+        "Mira": [],
+        "Voss": [],
+        "Nia": []
+      },
+      "character_beliefs": {
+        "Mira": [],
+        "Voss": [],
+        "Nia": []
+      },
+      "character_relationships": {
+        "Mira": {},
+        "Voss": {},
+        "Nia": {}
+      },
+      "character_conditions": {
+        "Mira": {
+          "condition": "unestablished",
+          "location": "",
+          "emotional_state": "unestablished"
+        },
+        "Voss": {
+          "condition": "unestablished",
+          "location": "",
+          "emotional_state": "unestablished"
+        },
+        "Nia": {
+          "condition": "unestablished",
+          "location": "",
+          "emotional_state": "unestablished"
+        }
+      },
+      "established_objects": [],
+      "active_conflicts": [],
+      "location": "Established setting",
+      "required_event": "Mira chooses between competing priorities under pressure from the established conflict. A reluctant person or resource must be persuaded to participate.",
+      "required_evidence": [],
+      "dependencies": [
+        "scene-0001"
+      ],
+      "dependency_policy": "all listed scenes must be accepted",
+      "allowed_revelations": [],
+      "forbidden_revelations": [],
+      "expected_ending_state": "The choice changes an important relationship, resource, belief, or immediate risk.",
+      "next_scene_effect": "The choice changes an important relationship, resource, belief, or immediate risk.",
+      "continuity_constraints": [],
+      "resolution_conditions": [],
+      "action_candidates": [
+        {
+          "action_id": "scene-0002:intent-00",
+          "actions": {
+            "Protagonist": "pursues Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+            "Antagonist": "resists Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "supports the objective by Nia contributes only through established abilities, knowledge, or relationship stakes."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 1 predecessor is committed"
+          ],
+          "expected_effect": "The choice changes an important relationship, resource, belief, or immediate risk.",
+          "narrative_purpose": "Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+          "risks": [
+            "current tension=0.352",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0002:intent-01",
+          "actions": {
+            "Protagonist": "pursues Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+            "Antagonist": "resists Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "helps bring about Mira chooses between competing priorities under pressure from the established conflict. A reluctant person or resource must be persuaded to participate."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 1 predecessor is committed"
+          ],
+          "expected_effect": "The choice changes an important relationship, resource, belief, or immediate risk.",
+          "narrative_purpose": "Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+          "risks": [
+            "current tension=0.352",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0002:intent-02",
+          "actions": {
+            "Protagonist": "pursues Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+            "Antagonist": "resists Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "carries support into The choice changes an important relationship, resource, belief, or immediate risk."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 1 predecessor is committed"
+          ],
+          "expected_effect": "The choice changes an important relationship, resource, belief, or immediate risk.",
+          "narrative_purpose": "Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+          "risks": [
+            "current tension=0.352",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0002:intent-03",
+          "actions": {
+            "Protagonist": "pursues Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+            "Antagonist": "resists Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "manages the risk by responding to The choice changes an important relationship, resource, belief, or immediate risk."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 1 predecessor is committed"
+          ],
+          "expected_effect": "The choice changes an important relationship, resource, belief, or immediate risk.",
+          "narrative_purpose": "Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+          "risks": [
+            "current tension=0.352",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0002:intent-04",
+          "actions": {
+            "Protagonist": "pursues Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+            "Antagonist": "presses against Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+            "Ally": "supports the objective by Nia contributes only through established abilities, knowledge, or relationship stakes."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 1 predecessor is committed"
+          ],
+          "expected_effect": "The choice changes an important relationship, resource, belief, or immediate risk.",
+          "narrative_purpose": "Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+          "risks": [
+            "current tension=0.352",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0002:intent-05",
+          "actions": {
+            "Protagonist": "pursues Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+            "Antagonist": "presses against Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+            "Ally": "helps bring about Mira chooses between competing priorities under pressure from the established conflict. A reluctant person or resource must be persuaded to participate."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 1 predecessor is committed"
+          ],
+          "expected_effect": "The choice changes an important relationship, resource, belief, or immediate risk.",
+          "narrative_purpose": "Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+          "risks": [
+            "current tension=0.352",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0002:intent-06",
+          "actions": {
+            "Protagonist": "pursues Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+            "Antagonist": "presses against Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+            "Ally": "carries support into The choice changes an important relationship, resource, belief, or immediate risk."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 1 predecessor is committed"
+          ],
+          "expected_effect": "The choice changes an important relationship, resource, belief, or immediate risk.",
+          "narrative_purpose": "Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+          "risks": [
+            "current tension=0.352",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0002:intent-07",
+          "actions": {
+            "Protagonist": "pursues Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+            "Antagonist": "presses against Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+            "Ally": "manages the risk by responding to The choice changes an important relationship, resource, belief, or immediate risk."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 1 predecessor is committed"
+          ],
+          "expected_effect": "The choice changes an important relationship, resource, belief, or immediate risk.",
+          "narrative_purpose": "Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+          "risks": [
+            "current tension=0.352",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0002:intent-08",
+          "actions": {
+            "Protagonist": "responds to Mira chooses between competing priorities under pressure from the established conflict. A reluctant person or resource must be persuaded to participate.",
+            "Antagonist": "resists Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "supports the objective by Nia contributes only through established abilities, knowledge, or relationship stakes."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 1 predecessor is committed"
+          ],
+          "expected_effect": "The choice changes an important relationship, resource, belief, or immediate risk.",
+          "narrative_purpose": "Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+          "risks": [
+            "current tension=0.352",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0002:intent-09",
+          "actions": {
+            "Protagonist": "responds to Mira chooses between competing priorities under pressure from the established conflict. A reluctant person or resource must be persuaded to participate.",
+            "Antagonist": "resists Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "helps bring about Mira chooses between competing priorities under pressure from the established conflict. A reluctant person or resource must be persuaded to participate."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 1 predecessor is committed"
+          ],
+          "expected_effect": "The choice changes an important relationship, resource, belief, or immediate risk.",
+          "narrative_purpose": "Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+          "risks": [
+            "current tension=0.352",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0002:intent-10",
+          "actions": {
+            "Protagonist": "responds to Mira chooses between competing priorities under pressure from the established conflict. A reluctant person or resource must be persuaded to participate.",
+            "Antagonist": "resists Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "carries support into The choice changes an important relationship, resource, belief, or immediate risk."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 1 predecessor is committed"
+          ],
+          "expected_effect": "The choice changes an important relationship, resource, belief, or immediate risk.",
+          "narrative_purpose": "Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+          "risks": [
+            "current tension=0.352",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0002:intent-11",
+          "actions": {
+            "Protagonist": "responds to Mira chooses between competing priorities under pressure from the established conflict. A reluctant person or resource must be persuaded to participate.",
+            "Antagonist": "resists Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "manages the risk by responding to The choice changes an important relationship, resource, belief, or immediate risk."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 1 predecessor is committed"
+          ],
+          "expected_effect": "The choice changes an important relationship, resource, belief, or immediate risk.",
+          "narrative_purpose": "Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+          "risks": [
+            "current tension=0.352",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0002:intent-12",
+          "actions": {
+            "Protagonist": "responds to Mira chooses between competing priorities under pressure from the established conflict. A reluctant person or resource must be persuaded to participate.",
+            "Antagonist": "presses against Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+            "Ally": "supports the objective by Nia contributes only through established abilities, knowledge, or relationship stakes."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 1 predecessor is committed"
+          ],
+          "expected_effect": "The choice changes an important relationship, resource, belief, or immediate risk.",
+          "narrative_purpose": "Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+          "risks": [
+            "current tension=0.352",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0002:intent-13",
+          "actions": {
+            "Protagonist": "responds to Mira chooses between competing priorities under pressure from the established conflict. A reluctant person or resource must be persuaded to participate.",
+            "Antagonist": "presses against Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+            "Ally": "helps bring about Mira chooses between competing priorities under pressure from the established conflict. A reluctant person or resource must be persuaded to participate."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 1 predecessor is committed"
+          ],
+          "expected_effect": "The choice changes an important relationship, resource, belief, or immediate risk.",
+          "narrative_purpose": "Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+          "risks": [
+            "current tension=0.352",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0002:intent-14",
+          "actions": {
+            "Protagonist": "responds to Mira chooses between competing priorities under pressure from the established conflict. A reluctant person or resource must be persuaded to participate.",
+            "Antagonist": "presses against Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+            "Ally": "carries support into The choice changes an important relationship, resource, belief, or immediate risk."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 1 predecessor is committed"
+          ],
+          "expected_effect": "The choice changes an important relationship, resource, belief, or immediate risk.",
+          "narrative_purpose": "Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+          "risks": [
+            "current tension=0.352",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0002:intent-15",
+          "actions": {
+            "Protagonist": "responds to Mira chooses between competing priorities under pressure from the established conflict. A reluctant person or resource must be persuaded to participate.",
+            "Antagonist": "presses against Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+            "Ally": "manages the risk by responding to The choice changes an important relationship, resource, belief, or immediate risk."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 1 predecessor is committed"
+          ],
+          "expected_effect": "The choice changes an important relationship, resource, belief, or immediate risk.",
+          "narrative_purpose": "Reveal the cost or hidden implication of the current approach and force a consequential decision. Specifically, secure a first commitment.",
+          "risks": [
+            "current tension=0.352",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        }
+      ],
+      "status": "accepted"
+    },
+    {
+      "scene_id": "scene-0003",
+      "sequence": 3,
+      "phase": "resolution",
+      "purpose": "Scene 3: Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+      "required_characters": [
+        "Mira",
+        "Voss",
+        "Nia"
+      ],
+      "starting_state_version": 2,
+      "starting_facts": [],
+      "character_goals": {
+        "Mira": "Pursue the role established for protagonist.",
+        "Voss": "Pursue the role established for antagonist.",
+        "Nia": "Pursue the role established for ally."
+      },
+      "character_knowledge": {
+        "Mira": [],
+        "Voss": [],
+        "Nia": []
+      },
+      "character_beliefs": {
+        "Mira": [],
+        "Voss": [],
+        "Nia": []
+      },
+      "character_relationships": {
+        "Mira": {},
+        "Voss": {},
+        "Nia": {}
+      },
+      "character_conditions": {
+        "Mira": {
+          "condition": "unestablished",
+          "location": "",
+          "emotional_state": "unestablished"
+        },
+        "Voss": {
+          "condition": "unestablished",
+          "location": "",
+          "emotional_state": "unestablished"
+        },
+        "Nia": {
+          "condition": "unestablished",
+          "location": "",
+          "emotional_state": "unestablished"
+        }
+      },
+      "established_objects": [],
+      "active_conflicts": [],
+      "location": "Established setting",
+      "required_event": "Mira makes the decisive choice and faces its established consequences.",
+      "required_evidence": [],
+      "dependencies": [
+        "scene-0002"
+      ],
+      "dependency_policy": "all listed scenes must be accepted",
+      "allowed_revelations": [],
+      "forbidden_revelations": [],
+      "expected_ending_state": "The central question receives a meaningful outcome and the characters' situation is changed.",
+      "next_scene_effect": "Close the central question and show the lasting consequence.",
+      "continuity_constraints": [],
+      "resolution_conditions": [
+        "Can Mira respond to the central situation without losing what matters most?",
+        "Mira's goal conflicts with Voss and the consequences of the premise.",
+        "The central question receives a meaningful outcome and the characters' situation is changed."
+      ],
+      "action_candidates": [
+        {
+          "action_id": "scene-0003:intent-00",
+          "actions": {
+            "Protagonist": "pursues Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+            "Antagonist": "resists Resolve or intentionally transform the central conflict through Mira's accumulated choices. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "supports the objective by Nia contributes only through established abilities, knowledge, or relationship stakes."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 2 predecessor is committed"
+          ],
+          "expected_effect": "The central question receives a meaningful outcome and the characters' situation is changed.",
+          "narrative_purpose": "Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+          "risks": [
+            "current tension=0.404",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0003:intent-01",
+          "actions": {
+            "Protagonist": "pursues Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+            "Antagonist": "resists Resolve or intentionally transform the central conflict through Mira's accumulated choices. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "helps bring about Mira makes the decisive choice and faces its established consequences."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 2 predecessor is committed"
+          ],
+          "expected_effect": "The central question receives a meaningful outcome and the characters' situation is changed.",
+          "narrative_purpose": "Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+          "risks": [
+            "current tension=0.404",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0003:intent-02",
+          "actions": {
+            "Protagonist": "pursues Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+            "Antagonist": "resists Resolve or intentionally transform the central conflict through Mira's accumulated choices. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "carries support into Close the central question and show the lasting consequence."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 2 predecessor is committed"
+          ],
+          "expected_effect": "The central question receives a meaningful outcome and the characters' situation is changed.",
+          "narrative_purpose": "Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+          "risks": [
+            "current tension=0.404",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0003:intent-03",
+          "actions": {
+            "Protagonist": "pursues Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+            "Antagonist": "resists Resolve or intentionally transform the central conflict through Mira's accumulated choices. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "manages the risk by responding to The central question receives a meaningful outcome and the characters' situation is changed."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 2 predecessor is committed"
+          ],
+          "expected_effect": "The central question receives a meaningful outcome and the characters' situation is changed.",
+          "narrative_purpose": "Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+          "risks": [
+            "current tension=0.404",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0003:intent-04",
+          "actions": {
+            "Protagonist": "pursues Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+            "Antagonist": "presses against Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+            "Ally": "supports the objective by Nia contributes only through established abilities, knowledge, or relationship stakes."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 2 predecessor is committed"
+          ],
+          "expected_effect": "The central question receives a meaningful outcome and the characters' situation is changed.",
+          "narrative_purpose": "Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+          "risks": [
+            "current tension=0.404",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0003:intent-05",
+          "actions": {
+            "Protagonist": "pursues Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+            "Antagonist": "presses against Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+            "Ally": "helps bring about Mira makes the decisive choice and faces its established consequences."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 2 predecessor is committed"
+          ],
+          "expected_effect": "The central question receives a meaningful outcome and the characters' situation is changed.",
+          "narrative_purpose": "Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+          "risks": [
+            "current tension=0.404",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0003:intent-06",
+          "actions": {
+            "Protagonist": "pursues Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+            "Antagonist": "presses against Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+            "Ally": "carries support into Close the central question and show the lasting consequence."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 2 predecessor is committed"
+          ],
+          "expected_effect": "The central question receives a meaningful outcome and the characters' situation is changed.",
+          "narrative_purpose": "Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+          "risks": [
+            "current tension=0.404",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0003:intent-07",
+          "actions": {
+            "Protagonist": "pursues Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+            "Antagonist": "presses against Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+            "Ally": "manages the risk by responding to The central question receives a meaningful outcome and the characters' situation is changed."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 2 predecessor is committed"
+          ],
+          "expected_effect": "The central question receives a meaningful outcome and the characters' situation is changed.",
+          "narrative_purpose": "Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+          "risks": [
+            "current tension=0.404",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0003:intent-08",
+          "actions": {
+            "Protagonist": "responds to Mira makes the decisive choice and faces its established consequences.",
+            "Antagonist": "resists Resolve or intentionally transform the central conflict through Mira's accumulated choices. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "supports the objective by Nia contributes only through established abilities, knowledge, or relationship stakes."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 2 predecessor is committed"
+          ],
+          "expected_effect": "The central question receives a meaningful outcome and the characters' situation is changed.",
+          "narrative_purpose": "Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+          "risks": [
+            "current tension=0.404",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0003:intent-09",
+          "actions": {
+            "Protagonist": "responds to Mira makes the decisive choice and faces its established consequences.",
+            "Antagonist": "resists Resolve or intentionally transform the central conflict through Mira's accumulated choices. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "helps bring about Mira makes the decisive choice and faces its established consequences."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 2 predecessor is committed"
+          ],
+          "expected_effect": "The central question receives a meaningful outcome and the characters' situation is changed.",
+          "narrative_purpose": "Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+          "risks": [
+            "current tension=0.404",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0003:intent-10",
+          "actions": {
+            "Protagonist": "responds to Mira makes the decisive choice and faces its established consequences.",
+            "Antagonist": "resists Resolve or intentionally transform the central conflict through Mira's accumulated choices. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "carries support into Close the central question and show the lasting consequence."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 2 predecessor is committed"
+          ],
+          "expected_effect": "The central question receives a meaningful outcome and the characters' situation is changed.",
+          "narrative_purpose": "Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+          "risks": [
+            "current tension=0.404",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0003:intent-11",
+          "actions": {
+            "Protagonist": "responds to Mira makes the decisive choice and faces its established consequences.",
+            "Antagonist": "resists Resolve or intentionally transform the central conflict through Mira's accumulated choices. through Voss or the premise's opposing force resists the current objective in a way grounded in prior events.",
+            "Ally": "manages the risk by responding to The central question receives a meaningful outcome and the characters' situation is changed."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 2 predecessor is committed"
+          ],
+          "expected_effect": "The central question receives a meaningful outcome and the characters' situation is changed.",
+          "narrative_purpose": "Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+          "risks": [
+            "current tension=0.404",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0003:intent-12",
+          "actions": {
+            "Protagonist": "responds to Mira makes the decisive choice and faces its established consequences.",
+            "Antagonist": "presses against Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+            "Ally": "supports the objective by Nia contributes only through established abilities, knowledge, or relationship stakes."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 2 predecessor is committed"
+          ],
+          "expected_effect": "The central question receives a meaningful outcome and the characters' situation is changed.",
+          "narrative_purpose": "Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+          "risks": [
+            "current tension=0.404",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0003:intent-13",
+          "actions": {
+            "Protagonist": "responds to Mira makes the decisive choice and faces its established consequences.",
+            "Antagonist": "presses against Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+            "Ally": "helps bring about Mira makes the decisive choice and faces its established consequences."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 2 predecessor is committed"
+          ],
+          "expected_effect": "The central question receives a meaningful outcome and the characters' situation is changed.",
+          "narrative_purpose": "Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+          "risks": [
+            "current tension=0.404",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0003:intent-14",
+          "actions": {
+            "Protagonist": "responds to Mira makes the decisive choice and faces its established consequences.",
+            "Antagonist": "presses against Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+            "Ally": "carries support into Close the central question and show the lasting consequence."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 2 predecessor is committed"
+          ],
+          "expected_effect": "The central question receives a meaningful outcome and the characters' situation is changed.",
+          "narrative_purpose": "Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+          "risks": [
+            "current tension=0.404",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": true,
+          "valid": true,
+          "invalid_reasons": []
+        },
+        {
+          "action_id": "scene-0003:intent-15",
+          "actions": {
+            "Protagonist": "responds to Mira makes the decisive choice and faces its established consequences.",
+            "Antagonist": "presses against Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+            "Ally": "manages the risk by responding to The central question receives a meaningful outcome and the characters' situation is changed."
+          },
+          "action_type": "scene-grounded joint narrative intent",
+          "target": "Established setting",
+          "preconditions": [
+            "the selected actors are named in the story configuration",
+            "scene 2 predecessor is committed"
+          ],
+          "expected_effect": "The central question receives a meaningful outcome and the characters' situation is changed.",
+          "narrative_purpose": "Resolve or intentionally transform the central conflict through Mira's accumulated choices.",
+          "risks": [
+            "current tension=0.404",
+            "Voss or the premise's opposing force resists the current objective in a way grounded in prior events."
+          ],
+          "reversible": false,
+          "valid": true,
+          "invalid_reasons": []
+        }
+      ],
+      "status": "accepted"
+    }
+  ],
+  "scene_failures": [],
+  "ending_validation": {
+    "valid": true,
+    "issues": []
+  },
+  "completion_conditions": {
+    "all_planned_scenes_accepted": true,
+    "final_scene_accepted": true,
+    "ending_validation_passed": true
+  },
+  "manuscript_path": "acceptance_runs\\live-thriller-3-scene.md"
+}

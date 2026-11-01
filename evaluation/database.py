@@ -21,6 +21,7 @@ class Episode(Base):
     total_tension = Column(Float)
     full_log = Column(Text)  # Stored as JSON string
     story_id = Column(String, nullable=True, index=True)
+    system_state = Column(Text, nullable=True)
 
 
 class SceneHistoryModel(Base):
@@ -119,6 +120,10 @@ class AetherDatabase:
         if "story_id" not in columns:
             with self.engine.begin() as connection:
                 connection.execute(text("ALTER TABLE episodes ADD COLUMN story_id VARCHAR"))
+            columns.add("story_id")
+        if "system_state" not in columns:
+            with self.engine.begin() as connection:
+                connection.execute(text("ALTER TABLE episodes ADD COLUMN system_state TEXT"))
 
     def _migrate_secrets(self):
         """Create/upgrade secret storage without dropping existing data."""
@@ -157,7 +162,7 @@ class AetherDatabase:
     save_memory = add_memory
     get_memory_context = retrieve_memory
 
-    def save_episode(self, genre, premise, total_tension, log, story_id=None):
+    def save_episode(self, genre, premise, total_tension, log, story_id=None, system_state=None):
         session = self.Session()
         try:
             episode = Episode(
@@ -167,6 +172,7 @@ class AetherDatabase:
                 total_tension=total_tension,
                 full_log=json.dumps(log),
                 story_id=story_id,
+                system_state=json.dumps(system_state) if system_state is not None else None,
             )
             session.add(episode)
             session.commit()
@@ -174,6 +180,14 @@ class AetherDatabase:
         except Exception as e:
             session.rollback()
             raise e
+        finally:
+            session.close()
+
+    def get_episode_system_state(self, episode_id):
+        session = self.Session()
+        try:
+            episode = session.query(Episode).filter_by(id=episode_id).one_or_none()
+            return json.loads(episode.system_state) if episode and episode.system_state else None
         finally:
             session.close()
 

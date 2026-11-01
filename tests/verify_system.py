@@ -45,7 +45,7 @@ class MockRenderer:
             if step == 0
             else f"{antagonist} loses ground as {protagonist} reaches the next barrier."
             if step == 1
-            else f"{protagonist} secures the evidence and {antagonist} can no longer block the inquiry."
+            else f"{protagonist} secures the evidence and {antagonist} can no longer block the inquiry. The outcome changed their course."
         )
         ally_event = (
             f"{ally} confirms the archive route exists."
@@ -93,7 +93,10 @@ def test_integration():
     episode_log = result["scenes"]
 
     # 3. Assertions
-    assert len(episode_log) == 3, f"Expected 3 steps, got {len(episode_log)}"
+    assert len(episode_log) == 3, (
+        f"Expected 3 accepted steps, got {len(episode_log)}; "
+        f"status={result['status']}; failures={result['scene_failures']}"
+    )
     assert "total_reward" in result, "Reward key mismatch in v5.4.2 payload"
     assert "traits" in result, "Character traits missing from result"
     assert result["mode"] == "Short Story", "Mode mismatch"

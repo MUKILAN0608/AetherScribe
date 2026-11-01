@@ -73,3 +73,18 @@ def test_compact_local_prompt_tracks_scene_outline_and_one_based_number():
     assert "maintenance ledger" in first
     assert "fresh seal" in second
     assert first != second
+
+
+def test_compact_local_prompt_preserves_specific_retry_directive():
+    prompt = build_compact_local_prompt(
+        _state(), {"Protagonist": "investigate_technical_anomaly"}, 2,
+        repetition_warning=(
+            "RETRY 1 OF 3. REQUIRED: replace the opening sentence; the FIRST WORD MUST be Nia. "
+            "The rejected opening was: 'Mira's fingers trembled beside the archive door.' "
+            "Do not reuse its wording, subject, action, image, or rhythm."
+        ),
+    )
+    assert "REQUIRED: replace the opening sentence" in prompt
+    assert "Mira's fingers trembled beside the archive door" in prompt
+    assert "the FIRST WORD MUST be Nia" in prompt
+    assert prompt.startswith("MANDATORY RETRY OVERRIDE")

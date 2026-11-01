@@ -28,24 +28,18 @@ class StoryContinuity:
             f"ESTABLISHED FACTS:\n{facts}\n"
             f"CHARACTER KNOWLEDGE:\n{knowledge}\n"
             f"UNRESOLVED CONFLICTS:\n{conflicts}\n"
-            f"PREVIOUS OUTCOME: {self.previous_outcome or 'Opening scene; no prior outcome.'}\n"
+            f"PREVIOUS ACCEPTED SCENE SUMMARY (narrative context, not verified world fact): {self.previous_outcome or 'Opening scene; no prior outcome.'}\n"
             f"NEXT SCENE PURPOSE: {self.next_scene_purpose}"
         )
 
     def after_scene(self, summary: str, actions: dict, purpose: str) -> "StoryContinuity":
-        facts = list(self.established_facts)
-        facts.extend(f"{role} must {action.replace('_', ' ')}." for role, action in actions.items())
-        knowledge = {
-            character: tuple(items)
-            for character, items in self.character_knowledge.items()
-        }
-        for role, action in actions.items():
-            knowledge[role] = tuple(dict.fromkeys((*knowledge.get(role, ()), action.replace("_", " "))))
         return StoryContinuity(
             situation=summary.strip() or self.situation,
             protagonist_goal=self.protagonist_goal,
-            established_facts=tuple(dict.fromkeys(facts))[-12:],
-            character_knowledge=knowledge,
+            # Generated summaries and selected intentions are not proof that a
+            # world fact occurred or that another character learned it.
+            established_facts=self.established_facts,
+            character_knowledge=dict(self.character_knowledge),
             unresolved_conflicts=self.unresolved_conflicts or ("The central conflict remains unresolved.",),
             previous_outcome=summary.strip(),
             next_scene_purpose=purpose,

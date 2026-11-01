@@ -60,6 +60,42 @@ def test_ending_gate_rejects_unresolved_final_scene():
     assert "final_scene_lacks_resolution_signal" in issues
 
 
+def test_ending_gate_rejects_open_question_despite_resolution_keywords():
+    valid, issues = validate_story_ending(
+        _scene("Mira faces Voss and their situation changed. The consequence was clear, but the central question loomed larger: what would they do next?"),
+        {"protagonist": "Mira", "antagonist": "Voss"},
+    )
+    assert not valid
+    assert "final_scene_explicitly_unresolved" in issues
+
+
+def test_ending_gate_rejects_outcome_deferred_to_unknown_future():
+    valid, issues = validate_story_ending(
+        _scene("Mira confronts Voss and makes a choice that changed their lives. Nia says the answer lies within the record, its impact unknown, and the outcome hanging on what comes next."),
+        {"protagonist": "Mira", "antagonist": "Voss"},
+    )
+    assert not valid
+    assert "final_scene_explicitly_unresolved" in issues
+
+
+def test_ending_gate_rejects_central_question_that_still_has_alternatives():
+    valid, issues = validate_story_ending(
+        _scene("Mira faced Voss and her courage changed their future. The central question now bore weight, promising either transformation or ruin. The decision that awaited would determine everything."),
+        {"protagonist": "Mira", "antagonist": "Voss"},
+    )
+    assert not valid
+    assert "final_scene_explicitly_unresolved" in issues
+
+
+def test_ending_gate_rejects_final_outcome_presented_as_unresolved_alternatives():
+    valid, issues = validate_story_ending(
+        _scene("Mira made a choice that changed their future. The central question now held a meaningful outcome: trust or deception."),
+        {"protagonist": "Mira", "antagonist": "Voss"},
+    )
+    assert not valid
+    assert "final_scene_explicitly_unresolved" in issues
+
+
 def test_quality_gate_rejects_truncated_final_sentence():
     result = validate_scene_output(
         "[SCENE 2]\nNARRATIVE:\nMira follows the ledger. Voss blocks the door. Lyra sends a key. Elias reaches the service",
@@ -116,6 +152,29 @@ def test_quality_gate_rejects_prompt_state_labels_in_narrative():
     )
     assert not result.accepted
     assert "internal_metadata_leak" in result.issues
+
+
+def test_quality_gate_rejects_role_placeholders_in_reader_prose():
+    result = validate_scene_output(
+        _scene("The protagonist follows the evidence while the antagonist blocks the exit."),
+        1, {"protagonist": "Mira", "antagonist": "Voss"}, [],
+    )
+    assert "internal_metadata_leak" in result.issues
+
+
+def test_action_label_leak_detection_is_dynamic_and_accepts_realized_action():
+    leaked = validate_scene_output(
+        _scene("Mira opens the panel. The action is decrypt_obelisk. Voss blocks her."),
+        1, {"protagonist": "Mira", "antagonist": "Voss"}, [],
+        forbidden_internal_terms=("decrypt_obelisk",),
+    )
+    realized = validate_scene_output(
+        _scene("Mira studies the carved seal and turns its hidden mechanism. Voss blocks her."),
+        1, {"protagonist": "Mira", "antagonist": "Voss"}, [],
+        forbidden_internal_terms=("decrypt_obelisk",),
+    )
+    assert "internal_action_label_leak" in leaked.issues
+    assert realized.accepted
 
 
 def test_quality_gate_rejects_unestablished_city_in_narrative():

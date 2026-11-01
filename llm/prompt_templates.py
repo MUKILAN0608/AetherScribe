@@ -283,7 +283,7 @@ def build_compact_local_prompt(
     characters = director_brief.get("characters", {})
     character_lines = [name for name in characters.values() if name]
     action_lines = [
-        f"{characters.get(role.lower(), role)} {' '.join(_ACTION_EVENT_GUIDANCE.get(action, action_to_event(action)).split()[:3])}"
+        f"{characters.get(role.lower(), role)}: {_ACTION_EVENT_GUIDANCE.get(action, str(action).replace('_', ' '))[:170]}"
         for role, action in actions.items()
     ]
     guidance = {}
@@ -297,7 +297,12 @@ def build_compact_local_prompt(
         continuity = f"Last accepted event: {accepted[:90]}"
         if story_continuity.established_facts:
             continuity += " Established: " + "; ".join(story_continuity.established_facts[-2:])[:100]
-    correction = f" Retry focus: {repetition_warning[:110]}" if repetition_warning else ""
+    # Put bounded retry directives first, where small local models are less
+    # likely to discard them after the scene contract and prose instructions.
+    retry_directive = (
+        f"MANDATORY RETRY OVERRIDE (follow before all style guidance): {repetition_warning[:520]}\n"
+        if repetition_warning else ""
+    )
     event = guidance.get("REQUIRED EVENT", "The protagonist takes a concrete investigative step.")
     validation_clues = guidance.get("VALIDATION CLUES") or guidance.get("NEW INFORMATION", "")
     consequence = guidance.get("EXPECTED CONSEQUENCE", "The current objective changes through a concrete result.")
@@ -317,7 +322,7 @@ def build_compact_local_prompt(
         if value:
             preferences.append(f"{label}: {value[:180]}")
     preference_text = "\n".join(preferences)
-    return f"""Write only the reader-facing scene prose: exactly {sentence_count} complete {language} {genre} sentences and {target_words} words TOTAL. This is a hard maximum; stop immediately after the third sentence. Use one concrete action, one character reaction or exchange, and the consequence. Avoid extra setup, repeated explanations, and closing commentary.
+    return f"""{retry_directive}Write only the reader-facing scene prose: exactly {sentence_count} complete {language} {genre} sentences and {target_words} words TOTAL. This is a hard maximum; stop immediately after the third sentence. Use one concrete action, one character reaction or exchange, and the consequence. Avoid extra setup, repeated explanations, and closing commentary.
 Premise: {premise}
 People: {', '.join(character_lines)}
 {preference_text}
@@ -326,7 +331,7 @@ Scene event: {event[:120]}
 Evidence to include: {validation_clues}
 Consequence: {consequence[:90]}
 Action cues: {'; '.join(action_lines)}
-Use only established facts, no new place or subplot. Do not repeat prior sentences or prompt wording. Do not add headings, labels, traces, notes, or analysis. Stay within the requested total word count.{correction}"""
+Use only established facts, no new place or subplot. Do not repeat prior sentences or prompt wording. Do not add headings, labels, traces, notes, or analysis. Stay within the requested total word count."""
 
 
 def action_to_event(action: str) -> str:

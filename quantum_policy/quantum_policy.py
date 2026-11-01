@@ -39,6 +39,21 @@ class QuantumPolicy:
             probs = probs[:num_actions]
         return probs / (np.sum(probs) + 1e-10)
 
+    @staticmethod
+    def condition_on_valid_actions(probabilities, valid_mask):
+        """Return the measured posterior conditioned on candidates that pass preconditions."""
+        probabilities = np.asarray(probabilities, dtype=float)
+        mask = np.asarray(valid_mask, dtype=bool)
+        if probabilities.ndim != 1 or mask.shape != probabilities.shape:
+            raise ValueError("valid action mask must match the one-dimensional posterior")
+        if not np.any(mask):
+            raise ValueError("no narrative-valid action candidates are available")
+        conditioned = np.where(mask, np.maximum(probabilities, 0.0), 0.0)
+        total = float(conditioned.sum())
+        if not np.isfinite(total) or total <= 0:
+            raise ValueError("valid action candidates have no posterior probability")
+        return conditioned / total
+
     def compute_step_diagnostics(
         self, state_vec, num_actions, trait_vec=None, eps=0.0, full_explain=False
     ):

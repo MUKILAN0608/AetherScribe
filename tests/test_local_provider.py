@@ -36,6 +36,18 @@ def test_deterministic_provider_is_offline():
     assert result.used_fallback is True
 
 
+def test_project_env_has_one_consistent_local_context_size():
+    from pathlib import Path
+
+    env_path = Path(__file__).resolve().parents[1] / ".env"
+    configured = [
+        line.split("=", 1)[1].strip()
+        for line in env_path.read_text(encoding="utf-8").splitlines()
+        if line.startswith("LOCAL_LLM_CONTEXT_SIZE=")
+    ]
+    assert configured == ["2048"]
+
+
 def test_local_runtime_unavailable_falls_back():
     with patch.dict("os.environ", {
         "NARRATIVE_LLM_PROVIDER": "",
@@ -61,8 +73,27 @@ def test_unavailable_local_provider_does_not_silently_fallback():
         "NARRATIVE_ALLOW_LOCAL_FALLBACK": "false",
     }, clear=False):
         router = ProviderRouter()
+        health = router.health_check()
+        assert health["available"] is False
+        assert health["provider"] == "local"
+        assert health["model"] == "missing"
+        assert health["endpoint"] == "http://127.0.0.1:1/v1"
         with pytest.raises(RuntimeError):
             router.generate("Write a scene.", GenerationConfig())
+
+
+def test_unavailable_provider_diagnostics_include_server_output(monkeypatch, tmp_path):
+    from llm.providers import LlamaCppServerProvider
+
+    log_path = tmp_path / "llama.log"
+    provider = LlamaCppServerProvider.__new__(LlamaCppServerProvider)
+    provider._server_log = open(log_path, "w+b")
+    try:
+        provider._server_log.write(b"error: Vulkan device could not allocate model buffers")
+        message = provider._server_diagnostics()
+    finally:
+        provider._server_log.close()
+    assert "Vulkan device could not allocate" in message
 
 
 def test_qwen30_configuration_must_match_local_artifact():
@@ -185,6 +216,8 @@ def test_retry_after_truncation_gets_more_output_tokens(monkeypatch):
         provider = type("Provider", (), {"provider_name": "local-endpoint"})()
         def generate(self, _prompt, config):
             captured["tokens"] = config.max_output_tokens
+            captured["temperature"] = config.temperature
+            captured["top_p"] = config.top_p
             return type("Result", (), {
                 "provider": "local-endpoint", "model": "fast-test", "error": None,
                 "latency_ms": 1.0, "used_fallback": False, "input_tokens": None,
@@ -197,6 +230,8 @@ def test_retry_after_truncation_gets_more_output_tokens(monkeypatch):
     renderer.scene_estimated_cost_usd = 0
     renderer._generate_text("prompt Retry 2 of 3.", max_output_tokens=128)
     assert captured["tokens"] == 192
+    assert captured["temperature"] > 0.8
+    assert captured["top_p"] > 0.8
 
 
 def test_router_reports_model_id_mismatch_without_fallback():
@@ -248,6 +283,24 @@ def test_compact_local_prompt_requests_reader_facing_prose_and_evidence():
     assert "reader-facing scene prose" in prompt
     assert "Do not add headings" in prompt
     assert "badge audit" in prompt
+
+
+def test_compact_prompt_respects_user_genre_and_writing_preferences():
+    from llm.prompt_templates import build_compact_local_prompt
+
+    prompt = build_compact_local_prompt(
+        {"genre": "romance", "director_brief": {
+            "characters": {"protagonist": "Ari"}, "tone": "wry and tender",
+            "writing_style": "spare", "pov_preference": "First person",
+            "ending_preference": "Bittersweet", "world_rules": "No magic.",
+        }}, {}, 0,
+    )
+    assert "romance sentences" in prompt
+    assert "Tone: wry and tender" in prompt
+    assert "Style: spare" in prompt
+    assert "POV: First person" in prompt
+    assert "Ending: Bittersweet" in prompt
+    assert "World rules: No magic." in prompt
 
 
 def test_scene_normalization_keeps_locked_action_out_of_reader_text():

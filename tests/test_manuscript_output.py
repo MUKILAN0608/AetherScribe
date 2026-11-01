@@ -48,6 +48,25 @@ def test_plain_export_preserves_original_scene_sequence_and_requested_count():
     assert "SCENE 4 OF 6" in output
 
 
+def test_manuscript_exports_only_unique_accepted_scenes_and_labels_partial():
+    episode = _episode()
+    episode["requested_scene_count"] = 3
+    episode["status"] = "partial"
+    duplicate = dict(episode["scenes"][0])
+    episode["scenes"].append(duplicate)
+    episode["scenes"].append({
+        **duplicate, "step": 1,
+        "quality_gate": {"accepted": False},
+        "story": "[SCENE 1]\nNARRATIVE:\nRejected draft.\n[QUANTUM_TRACE]\nprivate",
+    })
+    output = compile_plain_text_export(episode)
+    manuscript = compile_full_manuscript(episode)
+    assert output.count("Mira enters the vault") == 1
+    assert "Partial manuscript: 1 accepted" in output
+    assert "missing scene numbers: 2, 3" in output
+    assert "Rejected draft" not in manuscript
+
+
 def test_render_entities_handles_empty_scenes():
     class StreamlitStub:
         @staticmethod

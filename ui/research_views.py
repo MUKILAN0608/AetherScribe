@@ -7,6 +7,8 @@ import re
 import numpy as np
 import pandas as pd
 import streamlit as st
+from world_representation import OmniverseAdapter
+from visual_observation import VisualObserver
 
 from ui.charts import (
     attribution_pie,
@@ -316,6 +318,7 @@ def render_story_tab(ep: dict):
                 st.caption(f"Scene {label}: {issues}")
         elif reason:
             st.caption(f"Generation stopped: {reason}")
+        _render_research_systems(ep)
         return
     render_entities(ep)
 
@@ -531,6 +534,67 @@ def render_dashboard_tab(ep: dict):
             "Measured action": st.column_config.TextColumn(width="large"),
         },
     )
+    _render_research_systems(ep)
+
+
+def _render_research_systems(ep: dict):
+    """Progressively disclose Stage 4–8 observability and capability limits."""
+    with st.expander("Research systems · coordination, world, observation, prediction, adaptation"):
+        st.markdown("#### Stage 4 · Narrative coordination")
+        st.caption(f"Canonical state version: {ep.get('narrative_state_version', 0)} · traceable updates: {len(ep.get('state_updates', []))}")
+        agent_rows = [{"Scene": int(scene.get("step", -1)) + 1,
+                       "Agents": ", ".join(scene.get("coordination", {}).get("agents", [])),
+                       "Update": scene.get("coordination", {}).get("state_update_id", "")}
+                      for scene in ep.get("scenes", []) if scene.get("coordination")]
+        if agent_rows:
+            st.dataframe(pd.DataFrame(agent_rows), use_container_width=True, hide_index=True)
+        rejected_rows = []
+        for failure in ep.get("scene_failures", []):
+            for proposal in failure.get("agent_proposals", []):
+                rejected_rows.append({
+                    "Scene": int(failure.get("scene_index", -1)) + 1,
+                    "Agent": proposal.get("agent", "unknown"),
+                    "Accepted": proposal.get("accepted", False),
+                    "Findings": "; ".join(proposal.get("findings", [])),
+                })
+        if rejected_rows:
+            st.caption("Rejected scene reviews and agent findings")
+            st.dataframe(pd.DataFrame(rejected_rows), use_container_width=True, hide_index=True)
+
+        st.markdown("#### Stage 5 · Structured world representation")
+        availability = ep.get("world_visualization") or OmniverseAdapter.status()
+        world_version = (ep.get("world_state") or {}).get("version", 0)
+        st.caption(f"Committed world version: {world_version} · OpenUSD SDK: {'available' if availability.get('usd_available') else 'unavailable'} · Omniverse: {'available' if availability.get('omniverse_available') else 'unavailable'}")
+        if ep.get("world_usda"):
+            st.download_button("Download USDA world snapshot", ep["world_usda"], file_name="aetherscribe_world.usda", key="download_usda")
+
+        st.markdown("#### Stage 6 · Visual observation")
+        frame = st.file_uploader("Inspect a rendered frame (read-only)", type=["png", "jpg", "jpeg"], key="world_observation_frame")
+        if frame is not None:
+            try:
+                report = VisualObserver().observe(frame.getvalue(), (ep.get("world_state") or {}).get("entities", {}))
+                if report.status == "unavailable":
+                    st.info(report.error or "No visual detector is configured; image semantics were not inferred.")
+                else:
+                    st.json({"status": report.status, "findings": [item.__dict__ for item in report.findings], "discrepancies": report.discrepancies, "canonical_state_modified": report.canonical_state_modified})
+            except (OSError, ValueError, TypeError) as exc:
+                st.error(f"Frame could not be inspected: {exc}")
+
+        st.markdown("#### Stage 7 · Future-world predictions")
+        predictions = [item for scene in ep.get("scenes", []) for item in scene.get("predictions", [])]
+        if predictions:
+            st.caption("These are hypothetical proposals; none are observed or committed.")
+            st.dataframe(pd.DataFrame(predictions), use_container_width=True, hide_index=True)
+        else:
+            st.caption("No predictions are available without accepted scenes.")
+
+        st.markdown("#### Stage 8 · Temporal character adaptation")
+        profiles = ep.get("character_profiles", {})
+        if profiles:
+            rows = [{"Character": key, "Goal consistency": value.get("goal_consistency"), "Resolve": value.get("resolve"), "Emotional state": value.get("emotional_state"), "Grounding events": len(value.get("source_event_ids", []))} for key, value in profiles.items()]
+            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        else:
+            st.caption("Character adaptation has no accepted event evidence yet.")
 
 
 def render_export_tab(ep: dict):
