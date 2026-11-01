@@ -306,6 +306,25 @@ def build_compact_local_prompt(
     event = guidance.get("REQUIRED EVENT", "The protagonist takes a concrete investigative step.")
     validation_clues = guidance.get("VALIDATION CLUES") or guidance.get("NEW INFORMATION", "")
     consequence = guidance.get("EXPECTED CONSEQUENCE", "The current objective changes through a concrete result.")
+    story_question = guidance.get("CENTRAL QUESTION", "")
+    story_conflict = guidance.get("MAIN CONFLICT", "")
+    story_stakes = guidance.get("STAKES", "")
+    scene_cause = guidance.get("SCENE CAUSE", "")
+    character_goals = guidance.get("CHARACTER GOALS", "")
+    setup_payoff = guidance.get("SETUP PAYOFF", "")
+    ending_requirement = guidance.get("ENDING REQUIREMENT", "")
+    constraints = guidance.get("CONSTRAINTS", "")
+    knowledge_constraints = guidance.get("KNOWLEDGE CONSTRAINTS", "")
+    unverified_scene = guidance.get("UNVERIFIED PRIOR SCENE", "")
+    character_knowledge = guidance.get("CHARACTER KNOWLEDGE", "")
+    character_beliefs = guidance.get("CHARACTER BELIEFS", "")
+    established_objects = guidance.get("ESTABLISHED OBJECTS", "")
+    active_conflicts = guidance.get("ACTIVE CONFLICTS", "")
+    canonical_facts = guidance.get("CANONICAL FACTS", "")
+    current_timeline = guidance.get("CURRENT TIMELINE", "")
+    current_location = guidance.get("LOCATION", "")
+    character_conditions = guidance.get("CHARACTER CONDITIONS", "")
+    character_relationships = guidance.get("CHARACTER RELATIONSHIPS", "")
     sentence_count = 3
     requested_words = int(director_brief.get("scene_word_target", 65) or 65)
     target_words = f"{max(45, min(60, requested_words - 10))}-{max(55, min(75, requested_words))}"
@@ -327,11 +346,27 @@ Premise: {premise}
 People: {', '.join(character_lines)}
 {preference_text}
 {continuity}
+Central question: {story_question[:130]}
+Conflict and stakes: {(story_conflict + ' ' + story_stakes)[:200]}
+Scene cause: {scene_cause[:160]}
+Character goals: {character_goals[:220]}
+Known information: {character_knowledge[:180]}
+Character beliefs: {character_beliefs[:120]}
+Current canon: {canonical_facts[:180]}
+Objects / conflicts: {(established_objects + '; ' + active_conflicts)[:160]}
+Timeline: {current_timeline[:90]}
+Current place / condition: {(current_location + '; ' + character_conditions)[:170]}
+Relationships: {character_relationships[:120]}
 Scene event: {event[:120]}
 Evidence to include: {validation_clues}
 Consequence: {consequence[:90]}
+Setup/payoff obligations: {setup_payoff[:140]}
+Ending requirement: {ending_requirement[:180]}
+Prior unverified scene (context only): {unverified_scene[:160]}
+User/world constraints: {constraints[:180]}
+Knowledge limits: {knowledge_constraints[:180]}
 Action cues: {'; '.join(action_lines)}
-Use only established facts, no new place or subplot. Do not repeat prior sentences or prompt wording. Do not add headings, labels, traces, notes, or analysis. Stay within the requested total word count."""
+Do not invent plot-critical people, organizations, secrets, clues, objects, locations, or mechanisms; ordinary incidental details cannot solve the conflict. Show the character's motive, obstacle, choice between real alternatives, action, and observable consequence. A provisional prior draft is unverified context, never a canon fact. Do not repeat prior decisions without changed circumstances. Do not repeat prior sentences or prompt wording. Do not add headings, labels, traces, notes, or analysis. Stay within the requested total word count."""
 
 
 def action_to_event(action: str) -> str:

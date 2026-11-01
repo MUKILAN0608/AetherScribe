@@ -94,7 +94,7 @@ def test_integration():
 
     # 3. Assertions
     assert len(episode_log) == 3, (
-        f"Expected 3 accepted steps, got {len(episode_log)}; "
+        f"Expected 3 generated manuscript entries, got {len(episode_log)}; "
         f"status={result['status']}; failures={result['scene_failures']}"
     )
     assert "total_reward" in result, "Reward key mismatch in v5.4.2 payload"

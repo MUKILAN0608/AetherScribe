@@ -29,10 +29,14 @@ def _episode(status="complete", steps=(0, 1), ending=True):
             {"sequence": 1, "status": "accepted"},
             {"sequence": 2, "status": "accepted" if len(scenes) == 2 else "blocked"},
         ],
-        "scene_failures": [] if len(scenes) == 2 else [{"scene_index": 1}],
+        "story_contract": {"required_scene_count": 2},
+        "scene_blueprints": [{"sequence": 1}, {"sequence": 2}],
+        "scene_failures": [] if len(scenes) == 2 else [{"scene_index": 1, "failure_type": "validation"}],
         "narrative_state_version": len(scenes),
         "ending_validation": {"valid": ending},
+        "whole_story_audit": {"passed": ending},
         "story_complete": status == "complete",
+        "policy_weights": [0.1, 0.2],
         "status": status,
     }
 
@@ -56,3 +60,30 @@ def test_acceptance_recognizes_well_labeled_partial_episode():
     assert result["passed"]
     episode["narrative_state_version"] = 2  # failed draft must not advance canonical state
     assert "failed_scenes_do_not_commit" in evaluate_episode_acceptance(episode)["failed_checks"]
+
+
+def test_generated_status_is_separate_from_scene_validation_and_provisional_is_not_accepted():
+    episode = _episode(status="generated")
+    episode["scenes"][1]["quality_gate"] = {"accepted": False, "issues": ["repetition"]}
+    episode["scenes"][1]["generation_status"] = "generated_provisional"
+    episode["scenes"][1]["diagnostics"] = {"issues": ["repetition"]}
+    episode["accepted_scene_count"] = 1
+    episode["failed_scene_count"] = 1
+    episode["scene_failures"] = [{"scene_index": 1, "failure_type": "validation", "issues": ["repetition"]}]
+    episode["scene_contracts"][1]["status"] = "provisional"
+    episode["narrative_state_version"] = 1
+    episode["generated_scene_count"] = 2
+    episode["assembled_scene_count"] = 2
+    episode["provisional_scene_count"] = 1
+    episode["generation_complete"] = True
+    episode["validation_complete"] = False
+    episode["ending_validation"] = {"valid": False}
+    episode["whole_story_audit"] = {"passed": False}
+    episode["story_complete"] = False
+
+    result = evaluate_episode_acceptance(episode)
+    assert result["passed"]
+    assert result["status"] == "generated"
+    assert result["generated_scene_count"] == 2
+    assert result["accepted_scene_count"] == 1
+    assert result["provisional_scene_count"] == 1

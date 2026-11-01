@@ -88,3 +88,22 @@ def test_compact_local_prompt_preserves_specific_retry_directive():
     assert "Mira's fingers trembled beside the archive door" in prompt
     assert "the FIRST WORD MUST be Nia" in prompt
     assert prompt.startswith("MANDATORY RETRY OVERRIDE")
+
+
+def test_compact_prompt_carries_story_contract_and_blocks_unseeded_plot_devices():
+    prompt = build_compact_local_prompt(
+        _state(),
+        {"Protagonist": "investigate_technical_anomaly"},
+        2,
+        planning_guidance=(
+            "CENTRAL QUESTION: Who altered the archive index?",
+            "MAIN CONFLICT: Mira must expose Voss without losing Nia's trust.",
+            "SCENE CAUSE: Nia found the altered index in scene 2.",
+            "CHARACTER GOALS: Mira: expose the change; Nia: protect the records.",
+            "SETUP PAYOFF: Resolve the altered index.",
+        ),
+    )
+    assert "Who altered the archive index?" in prompt
+    assert "Nia found the altered index in scene 2." in prompt
+    assert "Do not invent plot-critical people" in prompt
+    assert "A provisional prior draft is unverified context" in prompt

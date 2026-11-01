@@ -67,6 +67,7 @@ def _validation_errors(issues, scene_index, text):
         "internal_action_label_leak": "action_to_prose_leakage", "unsupported_location": "continuity",
         "unsupported_time_jump": "continuity", "premise_restatement": "causal_progression",
         "duplicate_sentence": "narrative_quality", "generic_fallback_text": "structure",
+        "repeated_character_decision": "causal_progression",
     }
     messages = {
         "truncated_output": ("Output ended before a complete sentence.", "Complete final sentence", "Incomplete or absent ending"),
@@ -81,6 +82,7 @@ def _validation_errors(issues, scene_index, text):
         "premise_restatement": ("The scene restates the premise instead of progressing it.", "New causal progression", "Premise overlap"),
         "duplicate_sentence": ("The scene repeats a sentence.", "Unique sentences", "Duplicate sentence"),
         "generic_fallback_text": ("Generic fallback prose was detected.", "Specific scene prose", "Generic template marker"),
+        "repeated_character_decision": ("A character repeats a prior decision without a changed circumstance.", "A new choice or materially changed stakes", "Decision substantially repeats an earlier scene"),
     }
     result = []
     for issue in dict.fromkeys(issues):
@@ -251,7 +253,9 @@ def _correction_instruction(issues: list[str]) -> str:
     return " ".join(dict.fromkeys(messages))
 
 
-def validate_story_ending(text: str, characters: dict) -> tuple[bool, tuple[str, ...]]:
+def validate_story_ending(
+    text: str, characters: dict, premise: str = ""
+) -> tuple[bool, tuple[str, ...]]:
     """Apply bounded ending checks without claiming full semantic understanding."""
     body = _narrative_body(text)
     issues = []
@@ -261,18 +265,50 @@ def validate_story_ending(text: str, characters: dict) -> tuple[bool, tuple[str,
         name = characters.get(role)
         if name and name not in body:
             issues.append(f"final_scene_missing_{role}")
+    premise_terms = {
+        token for token in re.findall(r"\b[a-z]{4,}\b", premise.lower())
+        if token not in {
+            "about", "after", "against", "among", "before", "being", "could", "their",
+            "there", "these", "those", "through", "where", "which", "while", "would",
+            "story", "scene", "must", "from", "with", "that", "this", "into", "when",
+        }
+        and token not in {str(name).lower() for name in characters.values() if name}
+    }
+    if premise_terms and not any(term in body.lower() for term in premise_terms):
+        issues.append("final_scene_not_tied_to_premise")
     if len(re.findall(r"\b[\w'-]+\b", body)) < 30:
         issues.append("final_scene_too_short")
     if not re.search(r"\b(resolv(?:e|es|ed|ing)|end(?:s|ed|ing)?|chang(?:e|es|ed|ing)|settled|surviv(?:e|es|ed|ing)|escap(?:e|es|ed|ing)|defeat(?:s|ed|ing)?|reconcil(?:e|es|ed|ing)|outcome|consequence)\b", body, re.I):
         issues.append("final_scene_lacks_resolution_signal")
+    concrete_outcome = re.search(
+        r"\b(?:confess(?:es|ed)?|admit(?:s|ted)?|surrender(?:s|ed)?|"
+        r"flee(?:s|d)?|left|leave(?:s)?|escape(?:s|d)?|release(?:s|d)?|"
+        r"arrest(?:s|ed)?|destroy(?:s|ed)?|publish(?:es|ed)?|expos(?:e|es|ed)|"
+        r"hand(?:s|ed) over|give(?:s|n)? up|open(?:s|ed)?|close(?:s|d)?|"
+        r"reveal(?:s|ed)?|forgive(?:s|n)?|reconcil(?:e|es|ed)|part(?:s|ed)|"
+        r"sign(?:s|ed)?|return(?:s|ed)?|break(?:s|ing)?|choose(?:s|n)? to leave|"
+        r"secur(?:e|es|ed|ing)|prove(?:s|d)?|verif(?:y|ies|ied)|"
+        r"can no longer (?:block|control|obstruct|prevent)|no longer (?:block|controls?|obstructs?))\b",
+        body, re.I,
+    )
+    if not concrete_outcome:
+        issues.append("final_scene_lacks_concrete_outcome")
     if re.search(
         r"\b(?:remains? unanswered|still unanswered|remains? unresolved|still unresolved|"
         r"loomed larger|what would (?:they|she|he|we) do|what comes next|what came next|"
         r"face what comes next|impact unknown|outcome hanging on|answer.{0,50}(?:lies|lay) within|"
         r"(?:decision|choice) that (?:awaits?|remains to be made)|"
+        r"(?:central question|decision|choice).{0,80}(?:hangs|awaits?|remains open)|"
+        r"how (?:will|can|should) (?:they|she|he|we) proceed|"
+        r"(?:the )?choice is (?:hers|his|theirs|mine) alone to make|"
+        r"the stage is set|final showdown loomed|prepared for whatever (?:lies|comes) ahead|"
+        r"decisive move symboliz|new chapter|changed their fates|act decisively|"
         r"(?:central question|outcome|consequence).{0,120}\b(?:either|unknown|uncertain|awaited|or|versus)\b|"
         r"no answer (?:came|followed))\b",
         body, re.I,
     ):
         issues.append("final_scene_explicitly_unresolved")
+    final_sentence = re.split(r"(?<=[.!?])\s+", body.strip())[-1] if body.strip() else ""
+    if final_sentence.rstrip().endswith("?"):
+        issues.append("final_scene_ends_with_open_question")
     return not issues, tuple(issues)

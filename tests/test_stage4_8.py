@@ -33,6 +33,22 @@ def test_coordinator_reviews_without_mutating_and_commits_versioned_update():
     assert coordinator.audit == [committed.update]
 
 
+def test_coordinator_validates_scene_blueprint_against_canonical_version():
+    coordinator = NarrativeCoordinator("story-contract", {"protagonist": "Mira", "antagonist": "Voss"})
+    contract = {
+        "scene_id": "scene-0001", "sequence": 1, "purpose": "Find the altered index.",
+        "starting_state_version": 0, "starting_condition": "The archive is sealed.",
+        "viewpoint_goal": "Find the altered index", "obstacle": "Voss controls access",
+        "concrete_event": "Mira tests the ledger", "decisive_choice": "Mira opens the ledger",
+        "immediate_consequence": "The index is exposed", "next_scene_condition": "Voss reacts",
+        "required_characters": ["Mira", "Voss"], "dependencies": [],
+        "action_candidates": [{"valid": True}],
+    }
+    assert coordinator.validate_scene_contract(contract) == ()
+    stale = {**contract, "starting_state_version": 1}
+    assert "contract_starts_from_stale_canonical_version" in coordinator.validate_scene_contract(stale)
+
+
 def test_canonical_state_seeds_character_profiles_and_applies_only_explicit_knowledge_effects():
     coordinator = NarrativeCoordinator(
         "story-state",

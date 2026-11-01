@@ -4,13 +4,13 @@ from dataclasses import dataclass, field
 
 
 ALLOWED_TRANSITIONS = {
-    "pending": {"generating", "blocked"},
+    "pending": {"generating", "failed", "blocked"},
     "generating": {"generated", "failed"},
     "generated": {"validating", "failed"},
     "validating": {"revision_required", "accepted", "failed"},
     "revision_required": {"retrying", "failed"},
     "retrying": {"generating", "failed"},
-    "accepted": set(), "failed": set(), "blocked": set(),
+    "accepted": set(), "failed": {"provisional"}, "provisional": set(), "blocked": set(),
 }
 
 

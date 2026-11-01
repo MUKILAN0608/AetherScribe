@@ -27,6 +27,10 @@ class CharacterState:
     relationships: Mapping[str, str] = field(default_factory=dict)
     condition: str = "unestablished"
     location: str = ""
+    secrets: tuple[str, ...] = ()
+    suspicions: tuple[str, ...] = ()
+    recent_actions: tuple[str, ...] = ()
+    decisions: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -43,6 +47,7 @@ class NarrativeEvent:
     consequences: tuple[str, ...] = ()
     objects: tuple[Mapping[str, Any], ...] = ()
     character_effects: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    phase: str = ""
 
 
 @dataclass(frozen=True)
@@ -65,6 +70,7 @@ class VersionedNarrativeState:
     events: tuple[NarrativeEvent, ...] = ()
     active_conflicts: tuple[ActiveConflict, ...] = ()
     open_threads: tuple[str, ...] = ()
+    phase: str = "opening"
 
 
 @dataclass(frozen=True)
@@ -152,8 +158,13 @@ class CharacterIntentAgent:
     def review(self, event: NarrativeEvent, state: VersionedNarrativeState) -> AgentProposal:
         referenced = (*event.participants, *event.character_effects.keys())
         unknown = tuple(name for name in dict.fromkeys(referenced) if name not in state.character_states)
-        return AgentProposal(self.name, True, recommendations=tuple(
-            f"Initialize state from premise for participant {name}." for name in unknown))
+        findings = tuple(f"scene event references uncontracted character {name}" for name in unknown)
+        return AgentProposal(
+            self.name,
+            not findings,
+            findings=findings,
+            recommendations=tuple(f"Add {name} to the canonical story contract before use." for name in unknown),
+        )
 
 
 class ConflictProgressionAgent:
@@ -171,6 +182,15 @@ class SceneQualityAgent:
             findings.append("scene identity does not match the accepted plan")
         if not plan.get("purpose"):
             findings.append("planned scene purpose is missing")
+        if not event.participants:
+            findings.append("scene has no contracted characters present")
+        planned_participants = tuple(plan.get("characters_present", ()))
+        if planned_participants and any(name not in planned_participants for name in event.participants):
+            findings.append("scene event includes a character outside its blueprint")
+        if plan.get("immediate_consequence") and not event.consequences:
+            findings.append("scene event lacks its planned consequence")
+        if plan.get("location") and event.location != plan.get("location"):
+            findings.append("scene event location differs from its blueprint")
         return AgentProposal(self.name, not findings, tuple(findings), evidence=(event.summary,))
 
 
@@ -188,7 +208,8 @@ class NarrativeCoordinator:
     """Agents can only propose. This object serializes review and state commits."""
     def __init__(self, story_id: str, characters: Mapping[str, str] | None = None,
                  max_revisions: int = 3, character_profiles: Mapping[str, Mapping[str, Any]] | None = None,
-                 initial_state: Mapping[str, Any] | None = None):
+                 initial_state: Mapping[str, Any] | None = None,
+                 story_contract: Mapping[str, Any] | None = None):
         profiles = character_profiles or {}
         initial = initial_state or {}
         character_states = {}
@@ -208,6 +229,8 @@ class NarrativeCoordinator:
                 relationships=dict(raw.get("relationships", {}) or {}),
                 condition=str(raw.get("condition", "unestablished") or "unestablished"),
                 location=str(raw.get("location", "") or ""),
+                secrets=tuple(str(value) for value in raw.get("secrets", ()) if str(value).strip()),
+                suspicions=tuple(str(value) for value in raw.get("suspicions", ()) if str(value).strip()),
             )
         self.state = VersionedNarrativeState(
             story_id=story_id,
@@ -229,11 +252,43 @@ class NarrativeCoordinator:
                 for index, item in enumerate(initial.get("active_conflicts", ()))
             ),
             open_threads=tuple(str(value) for value in initial.get("open_threads", ()) if str(value).strip()),
+            phase="opening",
         )
+        self.story_contract = dict(story_contract or {})
         self.max_revisions = max(0, int(max_revisions))
         self.agents = (ContinuityAgent(), CharacterIntentAgent(), ConflictProgressionAgent(), SceneQualityAgent())
         self.audit: list[StateUpdate] = []
         self._commit_lock = RLock()
+
+    def validate_scene_contract(self, contract: Mapping[str, Any]) -> tuple[str, ...]:
+        """Check the blueprint against the current canonical state before prose generation."""
+        required = (
+            "scene_id", "sequence", "purpose", "starting_state_version", "starting_condition",
+            "viewpoint_goal", "obstacle", "concrete_event", "decisive_choice",
+            "immediate_consequence", "next_scene_condition",
+        )
+        issues = [f"missing_contract_field:{key}" for key in required if contract.get(key) in (None, "")]
+        with self._commit_lock:
+            if contract.get("starting_state_version") != self.state.version:
+                issues.append("contract_starts_from_stale_canonical_version")
+            previous_sequence = self.state.events[-1].sequence if self.state.events else 0
+            if int(contract.get("sequence", -1)) <= previous_sequence:
+                issues.append("contract_sequence_does_not_follow_accepted_state")
+            dependencies = tuple(contract.get("dependencies", ()))
+            accepted_ids = {event.scene_id for event in self.state.events}
+            provisional_ids = set(contract.get("provisional_dependencies", ()))
+            unresolved_ids = set(contract.get("unresolved_dependencies", ()))
+            missing = [dependency for dependency in dependencies
+                       if dependency not in accepted_ids
+                       and dependency not in provisional_ids
+                       and dependency not in unresolved_ids]
+            if missing:
+                issues.append("contract_dependency_not_accepted:" + ",".join(map(str, missing)))
+        if not contract.get("required_characters"):
+            issues.append("contract_has_no_required_characters")
+        if not any(item.get("valid") for item in contract.get("action_candidates", ())):
+            issues.append("contract_has_no_valid_action_candidate")
+        return tuple(issues)
 
     def review(self, event: NarrativeEvent, plan: Mapping[str, Any], revision_number: int = 0,
                commit: bool = False) -> CoordinationResult:
@@ -267,6 +322,7 @@ class NarrativeCoordinator:
             effect = event.character_effects.get(participant, {})
             if not isinstance(effect, Mapping):
                 effect = {}
+            action = str(event.decisions.get(participant, "")).strip()
             next_chars[participant] = CharacterState(
                 character_id=existing.character_id,
                 goal=str(effect.get("goal", existing.goal)),
@@ -280,7 +336,17 @@ class NarrativeCoordinator:
                 emotional_state=str(effect.get("emotional_state", existing.emotional_state)),
                 relationships={**dict(existing.relationships), **dict(effect.get("relationships", {}) or {})},
                 condition=str(effect.get("condition", existing.condition)),
-                location=str(effect.get("location", existing.location)),
+                location=str(effect.get("location", event.location or existing.location)),
+                secrets=existing.secrets,
+                suspicions=tuple(dict.fromkeys((
+                    *existing.suspicions, *(str(value) for value in effect.get("suspicions_added", ()))
+                ))),
+                recent_actions=tuple(dict.fromkeys((
+                    *existing.recent_actions[-5:], *((action,) if action else ())
+                )))[-6:],
+                decisions=tuple(dict.fromkeys((
+                    *existing.decisions[-5:], *((action,) if action else ())
+                )))[-6:],
             )
             changed.append(participant)
         next_objects = dict(self.state.objects)
@@ -294,7 +360,7 @@ class NarrativeCoordinator:
             tuple(dict.fromkeys((*self.state.locations, *((event.location,) if event.location else ())))),
             (*self.state.timeline, event.time) if event.time else self.state.timeline,
             next_objects, (*self.state.events, event), self.state.active_conflicts,
-            self.state.open_threads,
+            self.state.open_threads, event.phase or self.state.phase,
         )
         import hashlib
         update = StateUpdate(state.story_id, self.state.version, state.version, event, event.facts,

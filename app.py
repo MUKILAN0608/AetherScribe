@@ -140,13 +140,24 @@ def run_trajectory(brief, progress_bar=None, status=None):
             "accepted_scene_count": result["accepted_scene_count"],
             "failed_scene_count": result["failed_scene_count"],
             "attempted_scene_count": result["attempted_scene_count"],
+            "generated_scene_count": result.get("generated_scene_count", len(result["scenes"])),
+            "assembled_scene_count": result.get("assembled_scene_count", len(result["scenes"])),
+            "provisional_scene_count": result.get("provisional_scene_count", 0),
+            "generation_complete": result.get("generation_complete", False),
+            "validation_complete": result.get("validation_complete", False),
+            "story_complete": result.get("story_complete", False),
             "blocked_scene_indices": result["blocked_scene_indices"],
             "failed_scene_indices": result["failed_scene_indices"],
             "pending_scene_indices": result["pending_scene_indices"],
             "completion_conditions": result["completion_conditions"],
             "scene_contracts": result["scene_contracts"],
             "story_bible": result["story_bible"],
+            "story_contract": result.get("story_contract", {}),
+            "scene_blueprints": result.get("scene_blueprints", []),
             "story_plan": result["story_plan"],
+            "whole_story_audit": result.get("whole_story_audit", {}),
+            "manuscript_repairs": result.get("manuscript_repairs", []),
+            "policy_weights": result.get("policy_weights"),
             "world_state": result["world_state"],
             "world_usda": result["world_usda"],
             "narrative_state_version": result["narrative_state_version"],
@@ -172,8 +183,11 @@ def run_trajectory(brief, progress_bar=None, status=None):
         f"provider: {renderer.provider} · fallback: {'yes' if renderer.last_used_fallback else 'no'}"
     )
 
-    if result["scenes"]:
-        st.session_state.trained_weights = result["scenes"][-1]["weights"]
+    trained_weights = result.get("policy_weights")
+    if trained_weights is None and result.get("scenes"):
+        trained_weights = result["scenes"][-1].get("weights")
+    if trained_weights is not None:
+        st.session_state.trained_weights = trained_weights
 
     return {
         "id": result["id"],
@@ -189,8 +203,13 @@ def run_trajectory(brief, progress_bar=None, status=None):
         "requested_scene_count": result["requested_scene_count"],
         "planned_scene_count": result["planned_scene_count"],
         "story_bible": result["story_bible"],
+        "story_contract": result.get("story_contract", {}),
+        "scene_blueprints": result.get("scene_blueprints", []),
         "story_plan": result["story_plan"],
         "accepted_scene_count": result["accepted_scene_count"],
+        "generated_scene_count": result.get("generated_scene_count", len(result["scenes"])),
+        "assembled_scene_count": result.get("assembled_scene_count", len(result["scenes"])),
+        "provisional_scene_count": result.get("provisional_scene_count", 0),
         "failed_scene_count": result["failed_scene_count"],
         "attempted_scene_count": result["attempted_scene_count"],
         "blocked_scene_indices": result["blocked_scene_indices"],
@@ -199,6 +218,11 @@ def run_trajectory(brief, progress_bar=None, status=None):
         "completion_conditions": result["completion_conditions"],
         "scene_contracts": result["scene_contracts"],
         "story_complete": result["story_complete"],
+        "generation_complete": result.get("generation_complete", False),
+        "validation_complete": result.get("validation_complete", False),
+        "whole_story_audit": result.get("whole_story_audit", {}),
+        "manuscript_repairs": result.get("manuscript_repairs", []),
+        "policy_weights": result.get("policy_weights"),
         "status": result["status"],
         "scene_failures": result["scene_failures"],
         "ending_validation": result["ending_validation"],

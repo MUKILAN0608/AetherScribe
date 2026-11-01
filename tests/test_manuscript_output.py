@@ -11,6 +11,7 @@ def _episode():
         "scenes": [
             {
                 "step": 0,
+                "quality_gate": {"accepted": True},
                 "story": (
                     "[SCENE 0]\nNARRATIVE:\n"
                     "Mira enters the vault and sees the sealed archive.\n\n"
@@ -44,11 +45,11 @@ def test_plain_export_preserves_original_scene_sequence_and_requested_count():
     episode["requested_scene_count"] = 6
     episode["status"] = "partial"
     output = compile_plain_text_export(episode)
-    assert "Scenes: 1 accepted of 6 requested" in output
+    assert "Scenes: 1 generated; 1 accepted; 0 provisional of 6 requested" in output
     assert "SCENE 4 OF 6" in output
 
 
-def test_manuscript_exports_only_unique_accepted_scenes_and_labels_partial():
+def test_manuscript_exports_unique_accepted_and_provisional_scenes_with_status():
     episode = _episode()
     episode["requested_scene_count"] = 3
     episode["status"] = "partial"
@@ -57,14 +58,17 @@ def test_manuscript_exports_only_unique_accepted_scenes_and_labels_partial():
     episode["scenes"].append({
         **duplicate, "step": 1,
         "quality_gate": {"accepted": False},
+        "generation_status": "generated_provisional",
+        "diagnostics": {"issues": ["test validation failure"]},
         "story": "[SCENE 1]\nNARRATIVE:\nRejected draft.\n[QUANTUM_TRACE]\nprivate",
     })
     output = compile_plain_text_export(episode)
     manuscript = compile_full_manuscript(episode)
     assert output.count("Mira enters the vault") == 1
-    assert "Partial manuscript: 1 accepted" in output
-    assert "missing scene numbers: 2, 3" in output
-    assert "Rejected draft" not in manuscript
+    assert "1 accepted; 1 provisional" in output
+    assert "Missing scene numbers: 3" in output
+    assert "PROVISIONAL — NEEDS REVISION" in manuscript
+    assert "Rejected draft" in manuscript
 
 
 def test_render_entities_handles_empty_scenes():

@@ -16,12 +16,16 @@ from planning import (
     NarrativePlanner,
     PlannerInput,
     build_story_plan,
+    build_story_contract,
+    validate_story_plan,
 )
 from continuity import StoryContinuity, check_repetition, validate_scene_output, validate_story_ending
 from secret_loader import load_secret_package
 from agents.orchestration import NarrativeCoordinator, NarrativeEvent
 from world_representation import WorldState
 from evaluation.scene_lifecycle import SceneLifecycle
+from evaluation.narrative_audit import audit_scene_narrative, audit_story
+from evaluation.manuscript_repair import repair_manuscript
 from future_prediction import FutureWorldPredictor
 from temporal_adaptation import TemporalCharacterAdapter
 _secret_api = load_secret_package()
@@ -108,9 +112,58 @@ class EpisodeRunner:
                 else tuple(self.env.director_brief.get("world_rules", ()))
             ),
         )
+        plan_issues = validate_story_plan(self.story_plan, self.env.max_steps)
+        if plan_issues:
+            raise ValueError("story plan validation failed before prose generation: " + "; ".join(plan_issues))
+        raw_constraints = self.env.director_brief.get("constraints", ()) or ()
+        if isinstance(raw_constraints, str):
+            raw_constraints = (raw_constraints,)
+        self.user_constraints = tuple(str(item) for item in raw_constraints if str(item).strip())
+        self.story_contract = build_story_contract(
+            self.story_plan,
+            tone=str(self.env.director_brief.get("tone", "")),
+            characters=characters,
+            character_profiles=character_profiles,
+            initial_state=canonical_seed,
+            constraints=self.user_constraints,
+        )
+        self.scene_blueprints = tuple({
+            "scene_id": scene.scene_id,
+            "sequence": scene.scene_index + 1,
+            "purpose": scene.purpose,
+            "pov_character": scene.pov_character,
+            "location": scene.location,
+            "time": scene.time,
+            "characters_present": list(scene.characters_present),
+            "character_goals": dict(scene.character_goals),
+            "obstacle": scene.immediate_obstacle,
+            "concrete_actions": list(scene.concrete_actions),
+            "information_revealed": list(scene.information_revealed),
+            "causal_connection": scene.previous_scene_cause,
+            "consequence": scene.consequence,
+            "knowledge_changes": {key: list(value) for key, value in scene.knowledge_changes.items()},
+            "relationship_changes": list(scene.relationship_changes),
+            "ending_state": scene.ending_state,
+            "setup_payoff_obligations": list(scene.setup_payoff_obligations),
+            "continuity_constraints": list(self.story_contract.world_rules),
+            "next_scene_effect": scene.next_scene_effect,
+        } for scene in self.story_plan.scenes)
+        coordinator_seed = dict(canonical_seed)
+        if not coordinator_seed.get("active_conflicts"):
+            coordinator_seed["active_conflicts"] = [{
+                "conflict_id": "central-conflict",
+                "description": self.story_contract.main_conflict,
+                "status": "active",
+                "stakes": self.story_contract.stakes,
+            }]
+        if not coordinator_seed.get("open_threads"):
+            coordinator_seed["open_threads"] = [self.story_contract.central_question]
+        if self.story_contract.timeline:
+            coordinator_seed.setdefault("timeline", self.story_contract.timeline)
         self.narrative_coordinator = NarrativeCoordinator(
             self.story_id, characters, self.repetition_retry_limit,
-            character_profiles=character_profiles, initial_state=canonical_seed,
+            character_profiles=character_profiles, initial_state=coordinator_seed,
+            story_contract=self.story_contract.as_dict(),
         )
         self.world_state = WorldState.from_narrative_state(self.narrative_coordinator.state)
         self.future_predictor = FutureWorldPredictor()
@@ -159,6 +212,7 @@ class EpisodeRunner:
         episode_id = str(uuid.uuid4())
         previous_summary = None
         scene_contracts: list[dict] = []
+        secrets_by_scene: dict[int, list] = {}
         scene_history = (
             self.scene_history_repository.list(self.story_id)
             if self.scene_history_repository is not None else []
@@ -168,7 +222,7 @@ class EpisodeRunner:
         full_explain = render_depth == "full"
         lite_render = render_depth == "fast"
 
-        while not done:
+        while not done and step < self.env.max_steps:
             attempted_scene_indices.append(step)
             scene_plan = self.story_plan.for_scene(step)
             committed_state = self.narrative_coordinator.state
@@ -177,7 +231,9 @@ class EpisodeRunner:
                 self.env.director_brief.get("characters", {}),
                 scene_index=step,
                 accepted_predecessor=(step == 0 or bool(
-                    committed_state.events and committed_state.events[-1].sequence == step
+                    (committed_state.events and committed_state.events[-1].sequence < step + 1)
+                    or any(int(item.get("step", -1)) == step - 1 for item in episode_log)
+                    or any(int(item.get("scene_index", -1)) == step - 1 for item in scene_failures)
                 )),
                 tension=float(state.get("tension", 0.5)),
                 precondition_check=self.action_precondition_checker,
@@ -187,6 +243,7 @@ class EpisodeRunner:
             if not np.any(valid_mask):
                 scene_failures.append({
                     "scene_index": step,
+                    "failure_type": "planning",
                     "issues": ["no_valid_action_candidates"],
                     "retry_count": 0,
                     "provider_error": None,
@@ -195,7 +252,9 @@ class EpisodeRunner:
                         for item in candidates
                     ],
                 })
-                break
+                state = {**state, "step": step + 1}
+                step += 1
+                continue
             state_vec = StateRepresentation.encode(
                 state["phase"], state["tension"], state["genre"], state["step"]
             )
@@ -306,18 +365,37 @@ class EpisodeRunner:
                             story_id=self.story_id,
                             episode_id=episode_id,
                             scene_index=step,
-                            current_state=state,
+                            current_state={
+                                **state,
+                                "canonical_version": committed_state.version,
+                                "canonical_facts": list(committed_state.facts[-12:]),
+                                "active_conflicts": [item.description for item in committed_state.active_conflicts],
+                                "open_threads": list(committed_state.open_threads),
+                                "world_locations": list(committed_state.locations),
+                                "world_objects": dict(committed_state.objects),
+                                "timeline": list(committed_state.timeline[-8:]),
+                                "story_contract": {
+                                    "central_question": self.story_contract.central_question,
+                                    "main_conflict": self.story_contract.main_conflict,
+                                    "stakes": self.story_contract.stakes,
+                                },
+                            },
                             memories=tuple(memory_context),
-                            character_knowledge=(
+                            character_knowledge=tuple(
                                 CharacterKnowledge(
-                                    character_id=role,
+                                    character_id=name,
                                     constraints=tuple(
-                                        self.env.director_brief.get("constraints", [])
-                                    ),
+                                        ("Known: " + "; ".join(profile.knowledge),)
+                                        if profile and profile.knowledge
+                                        else ("No additional secret knowledge is established.",)
+                                    ) + tuple(
+                                        "Belief: " + item
+                                        for item in (profile.beliefs if profile else ())
+                                    ) + self.user_constraints,
                                 )
-                                for role in self.env.director_brief.get(
-                                    "characters", {}
-                                )
+                                for name in dict.fromkeys(self.env.director_brief.get("characters", {}).values())
+                                if name
+                                for profile in (committed_state.character_states.get(name),)
                             ),
                             locked_action=LockedActionSnapshot(dict(locked_action)),
                             token_budget=self.memory_budget,
@@ -378,6 +456,7 @@ class EpisodeRunner:
                     logging.getLogger("AetherScribeLab.EpisodeRunner").exception(
                         "Secret gate failed closed; continuing without secret values."
                     )
+            secrets_by_scene[step] = list(hidden_secrets)
 
             agent_context = {
                 "protagonist": self.action_space.protagonist,
@@ -421,6 +500,19 @@ class EpisodeRunner:
                 "mode": mode,
                 "lite_mode": lite_render,
             }
+            prior_provisional = next((
+                item for item in reversed(episode_log)
+                if not item.get("quality_gate", {}).get("accepted")
+            ), None)
+            if prior_provisional:
+                provisional_body = re.search(
+                    r"NARRATIVE:\s*(.*?)(?=\[QUANTUM_TRACE\]|$)",
+                    str(prior_provisional.get("story", "")), re.I | re.S,
+                )
+                render_kwargs["previous_summary"] = (
+                    "UNVERIFIED PRIOR DRAFT (do not treat as fact): "
+                    + (provisional_body.group(1).strip()[:500] if provisional_body else "No usable prose.")
+                )
             if self.memory_enabled:
                 render_kwargs["memory_context"] = memory_context
             renderer_parameters = inspect.signature(self.renderer.render_scene).parameters
@@ -430,18 +522,34 @@ class EpisodeRunner:
             )
             if "planning_guidance" in renderer_parameters or accepts_extra_kwargs:
                 scene_plan = self.story_plan.for_scene(step)
+                unverified_prior = [
+                    re.sub(r"\s+", " ", str(item.get("story", "")))[:220]
+                    for item in episode_log
+                    if not item.get("quality_gate", {}).get("accepted")
+                ]
                 render_kwargs["planning_guidance"] = (
                     f"SCENE NUMBER: {scene_plan.scene_index + 1}",
                     f"ARC PHASE: {scene_plan.phase}",
                     f"SCENE PURPOSE: {scene_plan.purpose}",
-                    f"PROTAGONIST OBJECTIVE: {scene_plan.protagonist_objective or scene_plan.purpose}",
-                    f"ANTAGONIST OPPOSITION: {scene_plan.antagonist_opposition or 'Maintain the established conflict without inventing unsupported facts.'}",
-                    f"ALLY CONTRIBUTION: {scene_plan.ally_contribution or 'Provide relevant support grounded in the established story.'}",
+                    f"CENTRAL QUESTION: {self.story_contract.central_question}",
+                    f"MAIN CONFLICT: {self.story_contract.main_conflict}",
+                    f"STAKES: {self.story_contract.stakes}",
+                    f"CHARACTERS PRESENT: {', '.join(scene_plan.characters_present)}",
+                    f"CHARACTER GOALS: {'; '.join(f'{name}: {goal}' for name, goal in scene_plan.character_goals.items())}",
+                    f"SCENE CAUSE: {scene_plan.previous_scene_cause}",
+                    f"STARTING CONDITION: {committed_state.events[-1].summary if committed_state.events else self.story_plan.premise}",
+                    f"VIEWPOINT GOAL: {scene_plan.protagonist_objective or scene_plan.purpose}",
+                    f"OBSTACLE: {scene_plan.antagonist_opposition}",
                     f"REQUIRED EVENT: {scene_plan.event}",
-                    f"NEW INFORMATION: {scene_plan.new_information or 'Add only information supported by a concrete event.'}",
+                    f"DECISIVE CHOICE: Show a specific motivated action and the observable alternative it rejects.",
+                    f"NEW INFORMATION: {scene_plan.new_information or 'Reveal information only when its source and recipient are shown.'}",
                     f"VALIDATION CLUES: {'; '.join(scene_plan.validation_terms)}",
                     f"EXPECTED CONSEQUENCE: {scene_plan.consequence}",
-                    f"NEXT SCENE EFFECT: {scene_plan.next_scene_effect or scene_plan.unresolved_objective}",
+                    f"SETUP PAYOFF: {'; '.join(scene_plan.setup_payoff_obligations)}",
+                    f"ENDING REQUIREMENT: {self.story_contract.intended_ending if step == self.env.max_steps - 1 else 'Do not resolve the central question early; carry forward only consequences already established.'}",
+                    f"UNVERIFIED PRIOR SCENE: {unverified_prior[-1] if unverified_prior else 'None'}",
+                    f"CONSTRAINTS: {'; '.join(self.story_contract.constraints + self.story_contract.world_rules)}",
+                    f"KNOWLEDGE CONSTRAINTS: {'; '.join(planner_result.knowledge_constraints) if planner_result else 'Characters may use only established knowledge.'}",
                     *(
                         planner_result.rendering_guidance
                         if planner_result is not None else ()
@@ -458,6 +566,37 @@ class EpisodeRunner:
                 "sequence": scene_plan.scene_index + 1,
                 "phase": scene_plan.phase,
                 "purpose": scene_plan.purpose,
+                "pov_character": scene_plan.pov_character,
+                "characters_present": list(scene_plan.characters_present),
+                "character_goals": dict(scene_plan.character_goals),
+                "starting_condition": " ".join(filter(None, (
+                    committed_state.events[-1].summary if committed_state.events else self.story_plan.premise,
+                    *(
+                        "Prior scene generation failed; no unsupported event or fact was established. Continue from the approved plan and canonical state."
+                        for failure in scene_failures
+                        if int(failure.get("scene_index", -1)) == step - 1
+                    ),
+                    *(
+                        "Provisional scene context (unverified; do not treat as canon): "
+                        + str(item.get("story", ""))[:700]
+                        for item in episode_log
+                        if not item.get("quality_gate", {}).get("accepted")
+                    ),
+                ))),
+                "viewpoint_goal": scene_plan.protagonist_objective or scene_plan.purpose,
+                "obstacle": scene_plan.antagonist_opposition,
+                "scene_cause": scene_plan.previous_scene_cause,
+                "concrete_event": scene_plan.event,
+                "decisive_choice": scene_plan.event,
+                "immediate_consequence": scene_plan.consequence,
+                "ending_state": scene_plan.ending_state,
+                "setup_payoff_obligations": list(scene_plan.setup_payoff_obligations),
+                "knowledge_changes": {key: list(value) for key, value in scene_plan.knowledge_changes.items()},
+                "relationship_changes": list(scene_plan.relationship_changes),
+                "next_scene_condition": scene_plan.next_scene_effect or scene_plan.unresolved_objective,
+                "intended_state_changes": [
+                    candidate.expected_effect for candidate in candidates if candidate.valid
+                ][:4],
                 "required_characters": list(self.env.director_brief.get("characters", {}).values()),
                 "starting_state_version": committed_state.version,
                 "starting_facts": list(committed_state.facts[-5:]),
@@ -484,7 +623,16 @@ class EpisodeRunner:
                 "required_event": scene_plan.event,
                 "required_evidence": list(scene_plan.validation_terms),
                 "dependencies": [self.story_plan.for_scene(step - 1).scene_id] if step else [],
-                "dependency_policy": "all listed scenes must be accepted",
+                "provisional_dependencies": [
+                    item.get("scene_id") for item in scene_contracts
+                    if item.get("status") == "provisional"
+                ],
+                "unresolved_dependencies": [
+                    self.story_plan.for_scene(step - 1).scene_id
+                    for failure in scene_failures
+                    if step > 0 and int(failure.get("scene_index", -1)) == step - 1
+                ],
+                "dependency_policy": "accepted, provisional, or explicitly unresolved predecessor; only accepted state is canonical",
                 "allowed_revelations": [item for item in secret_guidance if "eligible" in item],
                 "forbidden_revelations": [item for item in secret_guidance if "remains concealed" in item],
                 "expected_ending_state": scene_plan.consequence,
@@ -516,24 +664,80 @@ class EpisodeRunner:
             }
             scene_contracts.append(scene_contract)
             lifecycle = SceneLifecycle(scene_contract["scene_id"])
+            contract_issues = self.narrative_coordinator.validate_scene_contract(scene_contract)
+            if contract_issues:
+                lifecycle.transition("failed", reason=";".join(contract_issues))
+                scene_contract["status"] = "failed"
+                scene_contract["lifecycle"] = lifecycle.snapshot()
+                scene_failures.append({
+                    "scene_index": step,
+                    "failure_type": "planning",
+                    "issues": [f"invalid_scene_contract:{issue}" for issue in contract_issues],
+                    "retry_count": 0,
+                    "provider_error": None,
+                    "validation_errors": [{
+                        "code": "invalid_scene_contract", "category": "structure",
+                        "scene_id": scene_contract["scene_id"], "severity": "error",
+                        "message": "The scene blueprint failed coordinator validation before generation.",
+                        "evidence": list(contract_issues),
+                        "expected": "Complete contract anchored to the current canonical version",
+                        "actual": list(contract_issues),
+                        "repair_suggestion": "Repair the planner/coordinator contract before requesting prose.",
+                        "retry_permitted": False,
+                    }],
+                })
+                state = {**state, "step": step + 1}
+                step += 1
+                continue
+            def _contract_value(value):
+                if isinstance(value, MappingProxyType) or isinstance(value, dict):
+                    return "; ".join(
+                        f"{key}: {', '.join(map(str, item)) if isinstance(item, (list, tuple, set)) else str(item)}"
+                        for key, item in value.items()
+                    ) or "None"
+                if isinstance(value, (list, tuple, set)):
+                    return "; ".join(map(str, value)) or "None"
+                return str(value) if value else "None"
+
             contract_lines = tuple(
                 f"{key.replace('_', ' ').upper()}: {value if isinstance(value, str) else '; '.join(map(str, value)) if value else 'None'}"
                 for key, value in (
                     ("scene id", scene_contract["scene_id"]),
                     ("order", f"{scene_contract['sequence']} of {len(self.story_plan.scenes)}"),
                     ("purpose", scene_contract["purpose"]),
+                    ("starting condition", scene_contract["starting_condition"]),
+                    ("viewpoint goal", scene_contract["viewpoint_goal"]),
+                    ("obstacle", scene_contract["obstacle"]),
                     ("phase", scene_contract["phase"]),
                     ("required characters", scene_contract["required_characters"]),
                     ("location", scene_contract["location"]),
                     ("required event", scene_contract["required_event"]),
+                    ("decisive choice", scene_contract["decisive_choice"]),
                     ("required evidence", scene_contract["required_evidence"]),
                     ("causal dependency", scene_contract["dependencies"] or ["user premise"]),
                     ("starting facts", scene_contract["starting_facts"] or ["user premise"]),
                     ("expected ending state", scene_contract["expected_ending_state"]),
+                    ("immediate consequence", scene_contract["immediate_consequence"]),
+                    ("next scene condition", scene_contract["next_scene_condition"]),
                     ("next scene effect", scene_contract["next_scene_effect"]),
                     ("forbidden revelations", scene_contract["forbidden_revelations"] or ["unsupported facts"]),
                 )
             )
+            contract_lines = tuple(
+                f"{key.replace('_', ' ').upper()}: {_contract_value(value)}"
+                for key, value in (
+                    ("character goals", scene_contract["character_goals"]),
+                    ("character knowledge", scene_contract["character_knowledge"]),
+                    ("character beliefs", scene_contract["character_beliefs"]),
+                    ("character conditions", scene_contract["character_conditions"]),
+                    ("character relationships", scene_contract["character_relationships"]),
+                    ("current timeline", committed_state.timeline[-3:]),
+                    ("canonical facts", scene_contract["starting_facts"]),
+                    ("established objects", scene_contract["established_objects"]),
+                    ("active conflicts", scene_contract["active_conflicts"]),
+                    ("world rules", scene_contract["continuity_constraints"]),
+                )
+            ) + contract_lines
             if "planning_guidance" in inspect.signature(self.renderer.render_scene).parameters or accepts_extra_kwargs:
                 render_kwargs["planning_guidance"] = tuple(render_kwargs.get("planning_guidance", ())) + contract_lines
             repetition_warning = None
@@ -579,10 +783,28 @@ class EpisodeRunner:
                     ),
                 )
                 failure_issues = list(final_quality.issues)
+                known_story_context = " ".join((
+                    self.story_plan.premise,
+                    *[str(name) for name in self.env.director_brief.get("characters", {}).values() if name],
+                    *committed_state.facts,
+                    *(event.summary for event in committed_state.events),
+                    *(
+                        str(item.get("story", ""))
+                        for item in scene_history if item.get("accepted", True)
+                    ),
+                    *(fact for profile in committed_state.character_states.values()
+                      for fact in profile.knowledge),
+                ))
+                narrative_findings = audit_scene_narrative(
+                    story_text, step, known_context=known_story_context
+                )
+                failure_issues.extend(finding["code"] for finding in narrative_findings)
                 final_scene_issues = ()
                 if step == self.env.max_steps - 1:
                     _ending_ok, final_scene_issues = validate_story_ending(
-                        story_text, self.env.director_brief.get("characters", {})
+                        story_text,
+                        self.env.director_brief.get("characters", {}),
+                        premise=self.story_plan.premise,
                     )
                     failure_issues.extend(
                         f"episode_resolution:{issue}" for issue in final_scene_issues
@@ -614,7 +836,7 @@ class EpisodeRunner:
                     scene_id=scene_plan.scene_id or f"scene-{step + 1:04d}",
                     sequence=step + 1,
                     summary=candidate_prose[:300],
-                    participants=tuple(name for name in self.env.director_brief.get("characters", {}).values() if name),
+                    participants=tuple(scene_plan.characters_present),
                     location=scene_plan.location,
                     time=scene_plan.time,
                     # Prose summaries remain event context, not canonical facts.
@@ -625,9 +847,13 @@ class EpisodeRunner:
                         for role, action in locked_action.items()
                     },
                     consequences=(scene_plan.consequence,),
+                    phase=scene_plan.phase,
                 )
-                plan_contract = {"scene_id": scene_plan.scene_id or f"scene-{step + 1:04d}",
-                                 "purpose": scene_plan.purpose}
+                plan_contract = {
+                    **dict(scene_contract),
+                    "scene_id": scene_plan.scene_id or f"scene-{step + 1:04d}",
+                    "purpose": scene_plan.purpose,
+                }
                 coordination_review = self.narrative_coordinator.review(event, plan_contract, retry_count)
                 if not coordination_review.accepted:
                     failure_issues.extend(f"agent_review:{reason}" for reason in (coordination_review.revision.reasons if coordination_review.revision else ()))
@@ -685,6 +911,27 @@ class EpisodeRunner:
                     corrections.append("Remove all protected values and aliases without naming them.")
                 if "template_fallback_not_real_generation" in failure_issues:
                     corrections.append("The provider returned template fallback, not model prose; do not accept it.")
+                if "abstract_development_without_event" in failure_issues:
+                    corrections.append(
+                        "Do not summarize resolve, tension, sacrifice, or consequences. Dramatize the specific action, "
+                        "show the other character's response, and state the concrete change it causes."
+                    )
+                if "unsupported_family_relationship" in failure_issues:
+                    corrections.append(
+                        "Do not introduce an unestablished relative or family motive. Keep the established cast and relationships."
+                    )
+                if "unseeded_plot_device" in failure_issues:
+                    corrections.append(
+                        "Remove the unseeded plot device. Resolve the beat using only objects and mechanisms already established in the premise or accepted scenes."
+                    )
+                if "unexplained_location_transition" in failure_issues:
+                    corrections.append(
+                        "Keep the scene in the established location or show a clear physical transition from the prior accepted scene."
+                    )
+                if "unsupported_character_knowledge" in failure_issues:
+                    corrections.append(
+                        "Do not give a character prior knowledge without showing when and how they learned it; dramatize the discovery in this scene if appropriate."
+                    )
                 if any(issue.startswith("episode_resolution:") for issue in failure_issues):
                     corrections.append(
                         "This is the final scene. Show an earned outcome for the central conflict, "
@@ -710,8 +957,24 @@ class EpisodeRunner:
                     failure_issues.append("template_fallback_not_real_generation")
                 scene_failures.append({
                     "scene_index": step,
+                    "failure_type": (
+                        "provider" if not candidate_prose.strip()
+                        else "provider_fallback" if getattr(self.renderer, "last_used_fallback", False)
+                        else "validation"
+                    ),
                     "issues": list(dict.fromkeys(failure_issues)),
-                    "validation_errors": [asdict(error) for error in getattr(final_quality, "errors", ())],
+                    "validation_errors": [
+                        *[asdict(error) for error in getattr(final_quality, "errors", ())],
+                        *[{
+                            "code": finding["code"], "category": "narrative_quality",
+                            "scene_id": finding["scene_id"], "severity": "error",
+                            "message": finding["message"], "evidence": finding["evidence"],
+                            "expected": "Dramatized event and observable consequence",
+                            "actual": finding["message"],
+                            "repair_suggestion": finding["repair_suggestion"],
+                            "retry_permitted": True,
+                        } for finding in narrative_findings],
+                    ],
                     "retry_count": retry_count,
                     "provider_error": getattr(self.renderer, "last_error", None),
                     "finish_reason": (getattr(self.renderer, "last_provider_metadata", {}) or {}).get("finish_reason"),
@@ -724,11 +987,90 @@ class EpisodeRunner:
                     "agent_proposals": [asdict(proposal) for proposal in coordination_review.proposals],
                     "agent_disagreements": [asdict(item) for item in coordination_review.disagreements],
                 })
-                scene_contract["status"] = "failed"
+                if candidate_prose.strip():
+                    lifecycle.transition("provisional", reason="draft retained after validation retries")
+                    scene_contract["status"] = "provisional"
+                else:
+                    scene_contract["status"] = "failed"
                 scene_contract["lifecycle"] = lifecycle.snapshot()
-                # All later scenes depend on the accepted result of this scene.
-                # Do not generate from fictional, skipped-predecessor state.
-                break
+                if candidate_prose.strip():
+                    # Preserve the best generated prose with its failed gates, but never
+                    # commit it to canonical state or present it as accepted.
+                    reader_story = f"[SCENE {step + 1}]\nNARRATIVE:\n{candidate_prose}"
+                    provisional_entry = {
+                        "step": step,
+                        "state": state,
+                        "action": joint_action,
+                        "action_idx": action_idx,
+                        "action_candidate": {
+                            **asdict(action_candidate),
+                            "actions": dict(action_candidate.actions),
+                        },
+                        "candidate_selection": {
+                            "method": "stochastic sampling from VQC posterior conditioned on valid candidates",
+                            "valid_candidate_count": int(valid_mask.sum()),
+                            "invalid_candidate_count": int((~valid_mask).sum()),
+                            "candidate_ids": [candidate.action_id for candidate in candidates],
+                            "candidate_validity": valid_mask.tolist(),
+                            "measured_posterior": measured_posterior.tolist(),
+                            "valid_conditioned_posterior": probs.tolist(),
+                            "selected_candidate_id": action_candidate.action_id,
+                        },
+                        "probs": probs.tolist(),
+                        "selected_probability": float(probs[action_idx]),
+                        "peak_probability": float(np.max(probs)),
+                        "rejections": rejection_data,
+                        "deep_rejections": [],
+                        "attribution": attribution,
+                        "sensitivity": sensitivity,
+                        "risk": float(risk_score),
+                        "rationale": action_beat,
+                        "weights": self.policy.weights.tolist(),
+                        "action_idx": action_idx,
+                        "story": reader_story,
+                        "scene_plan": {
+                            "scene_id": scene_plan.scene_id,
+                            "title": scene_plan.title or f"Scene {step + 1}",
+                            "purpose": scene_plan.purpose,
+                            "phase": scene_plan.phase,
+                        },
+                        "coherence": float(coherence_score) if isinstance(coherence_score, (int, float)) else None,
+                        "entropy": entropy,
+                        "reward": 0.0,
+                        "quality_gate": {
+                            "accepted": False,
+                            "status": "provisional",
+                            "issues": list(dict.fromkeys(failure_issues)),
+                        },
+                        "generation_status": "generated_provisional",
+                        "validation_status": "failed",
+                        "validation_errors": scene_failures[-1]["validation_errors"],
+                        "retry_count": retry_count,
+                        "diagnostics": scene_failures[-1],
+                    }
+                    episode_log.append(provisional_entry)
+                    scene_history.append({
+                        "episode_id": episode_id,
+                        "scene_index": step,
+                        "story": reader_story,
+                        "summary": previous_summary or "",
+                        "outcome": previous_summary or "",
+                        "opening": re.sub(
+                            r"\W+", " ",
+                            re.split(r"(?<=[.!?])\s+", candidate_prose.strip(), maxsplit=1)[0].lower(),
+                        ).strip()[:180],
+                        "ending": re.split(r"(?<=[.!?])\s+", candidate_prose.strip())[-1].lower(),
+                        "beat": action_beat,
+                        "objective": scene_plan.purpose,
+                        "accepted": False,
+                    })
+                    if on_step is not None:
+                        on_step(provisional_entry, step + 1, self.env.max_steps)
+                # Provisional prose is context only. Keep later contracts tied to
+                # accepted canonical state, while allowing explicitly listed gaps.
+                state = next_state
+                step += 1
+                continue
 
             if dict(locked_action) != joint_action:
                 raise RuntimeError("Locked quantum action changed during narrative rendering.")
@@ -960,6 +1302,8 @@ class EpisodeRunner:
                     "accepted": final_quality.accepted,
                     "issues": list(final_quality.issues),
                 },
+                "generation_status": "generated_accepted",
+                "validation_status": "accepted",
                 "repetition": {
                     "repeated": repetition.repeated,
                     "reasons": list(repetition.reasons),
@@ -1003,6 +1347,7 @@ class EpisodeRunner:
                 "ending": sentences[-1].lower() if sentences else "",
                 "beat": action_beat,
                 "objective": self.story_plan.for_scene(step).purpose,
+                "accepted": final_quality.accepted,
             })
             if final_quality.accepted:
                 next_continuity = self.story_continuity.after_scene(
@@ -1038,7 +1383,7 @@ class EpisodeRunner:
             state = next_state
             step += 1
 
-        failed_index = scene_failures[0]["scene_index"] if scene_failures else None
+        generated_indices = {int(scene.get("step", -1)) for scene in episode_log}
         for plan in self.story_plan.scenes:
             if any(contract["sequence"] == plan.scene_index + 1 for contract in scene_contracts):
                 continue
@@ -1047,6 +1392,14 @@ class EpisodeRunner:
                 "sequence": plan.scene_index + 1,
                 "phase": plan.phase,
                 "purpose": plan.purpose,
+                "starting_condition": self.story_plan.premise,
+                "viewpoint_goal": plan.protagonist_objective or plan.purpose,
+                "obstacle": plan.antagonist_opposition,
+                "concrete_event": plan.event,
+                "decisive_choice": plan.event,
+                "immediate_consequence": plan.consequence,
+                "next_scene_condition": plan.next_scene_effect or plan.unresolved_objective,
+                "intended_state_changes": [],
                 "required_characters": list(self.env.director_brief.get("characters", {}).values()),
                 "starting_state_version": None,
                 "starting_facts": [],
@@ -1061,7 +1414,7 @@ class EpisodeRunner:
                 "required_event": plan.event,
                 "required_evidence": list(plan.validation_terms),
                 "dependencies": [self.story_plan.for_scene(plan.scene_index - 1).scene_id] if plan.scene_index else [],
-                "dependency_policy": "all listed scenes must be accepted",
+                "dependency_policy": "pending scene contracts use generated status only; accepted dependencies remain canonical",
                 "allowed_revelations": [],
                 "forbidden_revelations": ["unsupported facts"],
                 "expected_ending_state": plan.consequence,
@@ -1071,37 +1424,140 @@ class EpisodeRunner:
                     [self.story_plan.narrative_question, self.story_plan.central_conflict, plan.consequence]
                     if plan.phase == "resolution" else []
                 ),
-                "status": (
-                    "failed" if failed_index == plan.scene_index
-                    else "blocked" if failed_index is not None and plan.scene_index > failed_index
-                    else "pending"
-                ),
+                "status": "pending",
                 "lifecycle": {
                     "scene_id": plan.scene_id,
-                    "status": "blocked" if failed_index is not None and plan.scene_index > failed_index else "pending",
-                    "history": ([{"status": "blocked", "reason": "sequential predecessor failed"}]
-                                if failed_index is not None and plan.scene_index > failed_index else []),
+                    "status": "pending",
+                    "history": [],
                 },
             })
         scene_contracts.sort(key=lambda contract: contract["sequence"])
-        final_scene_accepted = bool(episode_log and episode_log[-1].get("step") == self.env.max_steps - 1)
+        manuscript_repairs = []
+        if len({int(scene.get("step", -1)) for scene in episode_log}) == self.env.max_steps:
+            def _audit_complete_story(items, requested):
+                return audit_story(
+                    items, requested, self.env.director_brief.get("characters", {}),
+                    story_contract=self.story_contract.as_dict(),
+                )
+
+            def _repair_one_scene(scene, manuscript, findings):
+                index = int(scene["step"])
+                plan = self.story_plan.for_scene(index)
+                context_lines = []
+                for item in manuscript:
+                    prose = re.search(
+                        r"NARRATIVE:\s*(.*?)(?=\[QUANTUM_TRACE\]|$)",
+                        str(item.get("story", "")), re.I | re.S,
+                    )
+                    if prose:
+                        context_lines.append(f"Scene {int(item['step']) + 1}: {prose.group(1).strip()[:240]}")
+                issue_text = "; ".join(str(item.get("message", item.get("code", "repair"))) for item in findings)
+                guidance = (
+                    f"Manuscript-level revision for scene {index + 1}/{self.env.max_steps}. "
+                    f"Purpose: {plan.purpose}. Event: {plan.event}. Consequence: {plan.consequence}. "
+                    f"Required cast: {', '.join(str(value) for value in self.env.director_brief.get('characters', {}).values())}. "
+                    f"Preserve established plot facts and repair these whole-story findings: {issue_text}. "
+                    "Write the scene as dramatized action with a goal, obstacle, decision, and changed consequence."
+                )
+                repaired_text, _, _, _ = self.renderer.render_scene(
+                    state=scene["state"],
+                    actions=scene.get("action", {}),
+                    rationale="Bounded whole-manuscript revision; retain the locked action.",
+                    previous_summary="\n".join(context_lines)[:2600],
+                    language=language,
+                    mode=mode,
+                    lite_mode=True,
+                    planning_guidance=[guidance],
+                    repetition_warning=(
+                        "Repair the supplied manuscript findings in a fresh complete scene. "
+                        "Do not add unsupported people, relationships, or events."
+                    ),
+                    generation_seed=(int(seed) if seed is not None else 0) + 10000 + index,
+                )
+                narrative = re.search(
+                    r"NARRATIVE:\s*(.*?)(?=\[QUANTUM_TRACE\]|\[COHERENCE\]|$)",
+                    repaired_text, re.I | re.S,
+                )
+                body = narrative.group(1).strip() if narrative else repaired_text.strip()
+                if not body:
+                    return None
+                return {"story": f"[SCENE {index + 1}]\nNARRATIVE:\n{body}"}
+
+            def _validate_manuscript_repair(candidate, index):
+                scene = episode_log[index]
+                prose_match = re.search(
+                    r"NARRATIVE:\s*(.*?)(?=\[QUANTUM_TRACE\]|$)",
+                    str(candidate.get("story", "")), re.I | re.S,
+                )
+                body = prose_match.group(1).strip() if prose_match else ""
+                quality = validate_scene_output(
+                    body, index, self.env.director_brief.get("characters", {}),
+                    [item for item in scene_history if not (
+                        item.get("episode_id") == episode_id
+                        and int(item.get("scene_index", -1)) == index
+                    )],
+                    "|".join(f"{role}:{action}" for role, action in scene.get("action", {}).items()),
+                    min_words=int(os.getenv("NARRATIVE_MIN_SCENE_WORDS", "0")),
+                    max_words=int(os.getenv("NARRATIVE_MAX_SCENE_WORDS", "0")) or None,
+                    required_terms=self.story_plan.for_scene(index).validation_terms,
+                    premise=self.env.director_brief.get("initial_story_premise", ""),
+                    forbidden_internal_terms=tuple(
+                        str(value) for pair in scene.get("action", {}).items() for value in pair if value
+                    ),
+                )
+                issues = list(quality.issues)
+                if audit_scene_narrative(body, index, known_context=self.story_plan.premise):
+                    issues.append("whole_story_repair_failed_narrative_audit")
+                if index == self.env.max_steps - 1:
+                    valid_ending, ending_issues = validate_story_ending(
+                        body,
+                        self.env.director_brief.get("characters", {}),
+                        premise=self.story_plan.premise,
+                    )
+                    if not valid_ending:
+                        issues.extend(f"ending:{issue}" for issue in ending_issues)
+                if self.secret_enabled and secrets_by_scene.get(index):
+                    secret_check = validate_prose(body, secrets_by_scene[index])
+                    if not secret_check.valid:
+                        issues.append("protected_secret_leak")
+                if getattr(self.renderer, "last_used_fallback", False):
+                    issues.append("template_fallback_not_real_generation")
+                if (getattr(self.renderer, "last_provider_metadata", {}) or {}).get("finish_reason") == "length":
+                    issues.append("provider_truncated_output")
+                return not issues, list(dict.fromkeys(issues))
+
+            episode_log, whole_story_audit, manuscript_repairs = repair_manuscript(
+                episode_log,
+                self.env.max_steps,
+                audit=_audit_complete_story,
+                repair_scene=_repair_one_scene,
+                validate_scene=_validate_manuscript_repair,
+            )
+        final_scene_present = bool(episode_log and episode_log[-1].get("step") == self.env.max_steps - 1)
+        final_scene_accepted = bool(
+            final_scene_present and episode_log[-1].get("quality_gate", {}).get("accepted")
+        )
         ending_valid, ending_issues = (
             validate_story_ending(
                 episode_log[-1]["story"],
                 self.env.director_brief.get("characters", {}),
+                premise=self.story_plan.premise,
             )
-            if final_scene_accepted else (
+            if final_scene_present else (
                 False,
-                tuple(scene_failures[-1]["issues"])
-                if scene_failures and scene_failures[-1]["scene_index"] == self.env.max_steps - 1
-                else ("final_scene_not_generated_after_prerequisite_failure",),
+                ("final_scene_not_generated",),
             )
         )
         all_accepted = (
             len(episode_log) == self.env.max_steps
             and all(scene.get("quality_gate", {}).get("accepted") for scene in episode_log)
         )
-        complete = all_accepted and ending_valid
+        assembled_scene_count = len(generated_indices)
+        whole_story_audit = audit_story(
+            episode_log, self.env.max_steps, self.env.director_brief.get("characters", {}),
+            story_contract=self.story_contract.as_dict(),
+        )
+        complete = all_accepted and ending_valid and whole_story_audit["passed"]
         return {
             "id": str(uuid.uuid4()),
             "episode_id": episode_id,
@@ -1140,6 +1596,8 @@ class EpisodeRunner:
                 }
                 for plan in self.story_plan.scenes
             ],
+            "story_contract": self.story_contract.as_dict(),
+            "scene_blueprints": [dict(blueprint) for blueprint in self.scene_blueprints],
             "scene_contracts": scene_contracts,
             "world_state": {
                 "story_id": self.world_state.story_id,
@@ -1154,26 +1612,44 @@ class EpisodeRunner:
             "state_updates": [asdict(update) for update in self.narrative_coordinator.audit],
             "character_profiles": {key: asdict(profile) for key, profile in self.character_adapter.profiles.items()},
             "adaptation_records": [asdict(record) for record in self.character_adapter.records],
+            "policy_weights": self.policy.weights.tolist(),
             "accepted_scene_count": sum(
                 1 for scene in episode_log if scene.get("quality_gate", {}).get("accepted")
             ),
+            "generated_scene_count": assembled_scene_count,
+            "assembled_scene_count": assembled_scene_count,
+            "provisional_scene_count": sum(
+                1 for scene in episode_log if scene.get("generation_status") == "generated_provisional"
+            ),
             "failed_scene_count": len(scene_failures),
             "attempted_scene_count": len(attempted_scene_indices),
+            "generation_complete": assembled_scene_count == self.env.max_steps,
+            "validation_complete": (
+                len(scene_failures) == 0 and assembled_scene_count == self.env.max_steps
+                and ending_valid and whole_story_audit["passed"]
+            ),
             "planned_scene_indices": list(range(self.env.max_steps)),
             "attempted_scene_indices": attempted_scene_indices,
-            "blocked_scene_indices": [
-                index for index in range(self.env.max_steps)
-                if scene_failures and index > scene_failures[0]["scene_index"]
-            ],
-            "pending_scene_indices": [],
+            "blocked_scene_indices": [],
+            "pending_scene_indices": [index for index in range(self.env.max_steps) if index not in generated_indices],
             "failed_scene_indices": [failure["scene_index"] for failure in scene_failures],
             "completion_conditions": {
                 "all_planned_scenes_accepted": all_accepted,
                 "final_scene_accepted": final_scene_accepted,
                 "ending_validation_passed": ending_valid,
+                "whole_story_audit_passed": whole_story_audit["passed"],
             },
             "story_complete": complete,
-            "status": "complete" if complete else ("partial" if episode_log else "failed"),
+            "status": "complete" if complete else (
+                "generated" if assembled_scene_count == self.env.max_steps
+                else "partial" if episode_log else "failed"
+            ),
+            "manuscript_status": "complete" if complete else (
+                "generated" if assembled_scene_count == self.env.max_steps
+                else "partial" if episode_log else "failed"
+            ),
             "ending_validation": {"valid": ending_valid, "issues": list(ending_issues)},
+            "whole_story_audit": whole_story_audit,
+            "manuscript_repairs": manuscript_repairs,
             "scene_failures": scene_failures,
         }

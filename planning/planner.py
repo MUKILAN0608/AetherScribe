@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import time
 from dataclasses import dataclass, field
 from types import MappingProxyType
@@ -48,6 +49,132 @@ class ScenePlan:
     character_interaction: str = ""
     story_change: str = ""
     causal_connection: str = ""
+    characters_present: tuple[str, ...] = ()
+    character_goals: Mapping[str, str] = field(default_factory=dict)
+    immediate_obstacle: str = ""
+    concrete_actions: tuple[str, ...] = ()
+    information_revealed: tuple[str, ...] = ()
+    previous_scene_cause: str = ""
+    knowledge_changes: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+    relationship_changes: tuple[str, ...] = ()
+    ending_state: str = ""
+    setup_payoff_obligations: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class StoryContract:
+    """Immutable story-level source of truth created before scene rendering."""
+
+    premise: str
+    genre: str
+    tone: str
+    central_question: str
+    main_conflict: str
+    stakes: str
+    character_profiles: Mapping[str, Mapping[str, Any]]
+    world_rules: tuple[str, ...]
+    timeline: tuple[str, ...]
+    important_objects: tuple[str, ...]
+    planned_revelations: tuple[str, ...]
+    escalation: tuple[str, ...]
+    intended_ending: str
+    required_scene_count: int
+    constraints: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        if self.required_scene_count <= 0:
+            raise PlannerValidationError("story contract scene count must be positive")
+        if not self.premise.strip() or not self.central_question.strip() or not self.main_conflict.strip():
+            raise PlannerValidationError("story contract requires a premise, central question, and conflict")
+        frozen_profiles = {
+            str(name): MappingProxyType(dict(profile))
+            for name, profile in self.character_profiles.items()
+        }
+        object.__setattr__(self, "character_profiles", MappingProxyType(frozen_profiles))
+        for field_name in (
+            "world_rules", "timeline", "important_objects", "planned_revelations",
+            "escalation", "constraints",
+        ):
+            object.__setattr__(self, field_name, tuple(getattr(self, field_name)))
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "premise": self.premise,
+            "genre": self.genre,
+            "tone": self.tone,
+            "central_question": self.central_question,
+            "main_conflict": self.main_conflict,
+            "stakes": self.stakes,
+            "character_profiles": {key: dict(value) for key, value in self.character_profiles.items()},
+            "world_rules": list(self.world_rules),
+            "timeline": list(self.timeline),
+            "important_objects": list(self.important_objects),
+            "planned_revelations": list(self.planned_revelations),
+            "escalation": list(self.escalation),
+            "intended_ending": self.intended_ending,
+            "required_scene_count": self.required_scene_count,
+            "constraints": list(self.constraints),
+        }
+
+
+def build_story_contract(
+    plan: StoryPlan,
+    *,
+    tone: str = "",
+    characters: Mapping[str, str] | None = None,
+    character_profiles: Mapping[str, Mapping[str, Any]] | None = None,
+    initial_state: Mapping[str, Any] | None = None,
+    constraints: Sequence[str] = (),
+) -> StoryContract:
+    """Freeze user-specified story facts and the complete planned arc up front."""
+    profiles = {str(name): dict(value or {}) for name, value in (character_profiles or {}).items()}
+    for role, name in (characters or {}).items():
+        if not name:
+            continue
+        profile = dict(profiles.get(name, profiles.get(role, {})) or {})
+        profile.setdefault("role", role)
+        profile.setdefault("goal", plan.character_goals.get(role, f"Act according to the established role of {name}."))
+        profile.setdefault("knowledge", [])
+        profile.setdefault("beliefs", [])
+        profile.setdefault("relationships", {})
+        profile.setdefault("condition", "unestablished")
+        profile.setdefault("location", "unestablished")
+        profiles[name] = profile
+    initial = initial_state or {}
+    objects = initial.get("objects", {}) or {}
+    if isinstance(objects, Mapping):
+        object_ids = tuple(sorted(str(key) for key in objects))
+    else:
+        object_ids = tuple(sorted(str(item) for item in objects))
+    clean_constraints = tuple(dict.fromkeys(
+        str(item).strip() for item in constraints if str(item).strip()
+    ))
+    clean_rules = tuple(dict.fromkeys((
+        *plan.world_rules,
+        *(str(item).strip() for item in initial.get("world_rules", ()) if str(item).strip()),
+    )))
+    return StoryContract(
+        premise=plan.premise,
+        genre=plan.genre,
+        tone=str(tone or "").strip(),
+        central_question=plan.narrative_question,
+        main_conflict=plan.central_conflict,
+        stakes=plan.stakes,
+        character_profiles=profiles,
+        world_rules=clean_rules,
+        timeline=tuple(str(item) for item in initial.get("timeline", ()) if str(item).strip()),
+        important_objects=object_ids,
+        planned_revelations=tuple(str(item) for item in initial.get("planned_revelations", ()) if str(item).strip()),
+        escalation=tuple(scene.causal_connection + " " + scene.event for scene in plan.scenes),
+        intended_ending=(
+            f"Resolve the premise's central question: {plan.narrative_question}. "
+            f"Show the outcome through established characters and established plot elements. "
+            f"Consequence: {plan.scenes[-1].consequence}"
+            if plan.scenes else ""
+        ),
+        required_scene_count=len(plan.scenes),
+        constraints=clean_constraints,
+    )
 
 
 @dataclass(frozen=True)
@@ -69,6 +196,31 @@ class StoryPlan:
         return self.scenes[min(max(scene_index, 0), len(self.scenes) - 1)]
 
 
+def validate_story_plan(plan: StoryPlan, requested_scene_count: int) -> tuple[str, ...]:
+    """Fail before prose generation when a causal blueprint is incomplete."""
+    issues = []
+    if len(plan.scenes) != requested_scene_count:
+        issues.append("story_plan_scene_count_mismatch")
+    if [scene.scene_index for scene in plan.scenes] != list(range(requested_scene_count)):
+        issues.append("story_plan_scene_order_invalid")
+    vague_only = re.compile(
+        r"^(?:the )?(?:tension increased|stakes became higher|a difficult decision had to be made|"
+        r"the conflict moved toward resolution|the story advanced)\.?$",
+        re.I,
+    )
+    for index, scene in enumerate(plan.scenes):
+        for field_name in ("purpose", "event", "consequence", "ending_state", "previous_scene_cause"):
+            if not str(getattr(scene, field_name, "")).strip():
+                issues.append(f"scene_{index + 1}_missing_{field_name}")
+        if not scene.concrete_actions:
+            issues.append(f"scene_{index + 1}_has_no_concrete_action")
+        if vague_only.fullmatch(scene.event.strip()):
+            issues.append(f"scene_{index + 1}_event_is_abstract")
+        if index and scene.previous_scene_cause != f"Scene {index}: {plan.scenes[index - 1].consequence}":
+            issues.append(f"scene_{index + 1}_causal_link_mismatch")
+    return tuple(issues)
+
+
 def build_story_plan(premise: str, genre: str, characters: Mapping[str, str], scene_count: int,
                      world_rules: Sequence[str] = ()) -> StoryPlan:
     """Build a bounded premise-aware arc plan without making model output authoritative."""
@@ -78,9 +230,8 @@ def build_story_plan(premise: str, genre: str, characters: Mapping[str, str], sc
     antagonist = characters.get("antagonist", "the opposing force")
     ally = characters.get("ally", "the ally")
     stages = ("opening", "development", "escalation", "climax", "resolution")
-    # Genre-neutral arc: each slot changes the protagonist's options and carries
-    # a consequence into the following scene. Story-specific evidence is never
-    # invented by the planner; it comes from the user premise or model.
+    # Each slot advances the user-established problem without requiring new
+    # objects, locations, organizations, or secrets as plot machinery.
     scenes = []
     development_beats = (
         ("secure a first commitment", "A reluctant person or resource must be persuaded to participate."),
@@ -96,22 +247,22 @@ def build_story_plan(premise: str, genre: str, characters: Mapping[str, str], sc
             phase = "opening"
             purpose = f"Establish {protagonist}'s concrete goal, personal stake, and the premise's immediate disruption."
             event = f"{protagonist} makes an irreversible first move in response to the central situation."
-            consequence = "That choice creates a cost or obligation that changes the next available move."
+            consequence = f"{protagonist}'s chosen action changes who can act next or what evidence remains available."
         elif index == scene_count - 1:
             phase = "resolution"
             purpose = f"Resolve or intentionally transform the central conflict through {protagonist}'s accumulated choices."
             event = f"{protagonist} makes the decisive choice and faces its established consequences."
-            consequence = "The central question receives a meaningful outcome and the characters' situation is changed."
+            consequence = f"The outcome of the premise's central conflict is observable, and {protagonist} bears its consequence."
         elif progress < 0.4:
             phase = "development"
             purpose = f"Complicate {protagonist}'s first strategy with a consequence caused by the previous scene."
             event = f"A new obstacle forces {protagonist} to revise the approach while protecting the original goal."
-            consequence = "The revised approach exposes a new cost and narrows the remaining options."
+            consequence = f"The attempt changes {protagonist}'s evidence, access, or trust with an established character."
         elif progress < 0.72:
             phase = "escalation"
             purpose = f"Reveal the cost or hidden implication of the current approach and force a consequential decision."
             event = f"{protagonist} chooses between competing priorities under pressure from the established conflict."
-            consequence = "The choice changes an important relationship, resource, belief, or immediate risk."
+            consequence = f"The chosen priority changes an established relationship, belief, access, or immediate risk."
         else:
             phase = "climax"
             purpose = f"Bring the central conflict to its decisive confrontation using consequences already established."
@@ -120,7 +271,10 @@ def build_story_plan(premise: str, genre: str, characters: Mapping[str, str], sc
         beat_name, beat_event = development_beats[(index - 1) % len(development_beats)]
         if 0 < index < scene_count - 1 and phase in {"development", "escalation"}:
             purpose = f"{purpose} Specifically, {beat_name}."
-            event = f"{event} {beat_event}"
+            event = (
+                f"Use an established character, clue, relationship, or constraint to {beat_name}; "
+                "show the attempt and its observable result. Do not introduce a new plot device."
+            )
         if antagonist and antagonist != "the opposing force":
             opposition = f"{antagonist} or the premise's opposing force resists the current objective in a way grounded in prior events."
         else:
@@ -129,7 +283,13 @@ def build_story_plan(premise: str, genre: str, characters: Mapping[str, str], sc
             f"{ally} contributes only through established abilities, knowledge, or relationship stakes."
             if ally and ally != "the ally" else "A supporting character or established resource changes the available choices if the premise supports it."
         )
-        next_effect = consequence if index + 1 < scene_count else "Close the central question and show the lasting consequence."
+        next_effect = consequence if index + 1 < scene_count else "Resolve the premise's central question and show its lasting consequence."
+        present = tuple(name for name in (protagonist, antagonist, ally) if name and not name.startswith("the "))
+        previous_cause = (
+            "The premise creates the initial pressure."
+            if index == 0 else
+            f"Scene {index}: {scenes[-1].consequence}"
+        )
         scenes.append(ScenePlan(
             index, phase, f"Scene {index + 1}: {purpose}", event, consequence,
             f"Make the next scene necessary through this consequence.",
@@ -145,8 +305,21 @@ def build_story_plan(premise: str, genre: str, characters: Mapping[str, str], sc
             pov_character=protagonist,
             character_interaction=f"Let established characters reveal their priorities through action and exchange.",
             story_change=consequence,
-            causal_connection=("The premise creates the opening pressure." if index == 0 else
-                               "The scene follows from the accepted consequence of the preceding scene."),
+            causal_connection=previous_cause,
+            characters_present=present,
+            character_goals={name: f"Pursue the established goal for {name}." for name in present},
+            immediate_obstacle=opposition,
+            concrete_actions=(event,),
+            information_revealed=(),
+            previous_scene_cause=previous_cause,
+            knowledge_changes={},
+            relationship_changes=(),
+            ending_state=consequence,
+            setup_payoff_obligations=(
+                ("Carry forward only details explicitly established in the premise or accepted scenes.",)
+                if index + 1 < scene_count else
+                ("Resolve the premise's central question and pay off established clues and obligations.",)
+            ),
         ))
     clean_premise = premise.strip()
     opposition = characters.get("antagonist", "the central obstacle")

@@ -1,4 +1,5 @@
 import pytest
+from dataclasses import replace
 
 from memory import MemoryRecord
 from planning import (
@@ -10,6 +11,8 @@ from planning import (
     PlannerResult,
     PlannerValidationError,
     build_story_plan,
+    build_story_contract,
+    validate_story_plan,
 )
 
 
@@ -106,3 +109,45 @@ def test_plan_purposes_are_unique_for_each_slot():
     plan = build_story_plan("A courier discovers a message meant for tomorrow.", "science fiction", {"protagonist": "Noor"}, 12)
     assert len({scene.purpose for scene in plan.scenes}) == 12
     assert len({scene.scene_id for scene in plan.scenes}) == 12
+
+
+def test_story_contract_and_all_scene_blueprints_are_frozen_before_rendering():
+    characters = {"protagonist": "Mira", "antagonist": "Voss", "ally": "Nia"}
+    plan = build_story_plan(
+        "Mira investigates a sealed archive while Voss hides the altered index.",
+        "mystery", characters, 8, ("No supernatural events.",),
+    )
+    contract = build_story_contract(
+        plan,
+        tone="restrained",
+        characters=characters,
+        character_profiles={"Mira": {"motivation": "protect the archive"}},
+        initial_state={"objects": {"index": {"location": "archive"}}, "timeline": ["one night"]},
+        constraints=("Use third person.",),
+    )
+    assert contract.required_scene_count == 8
+    assert contract.character_profiles["Mira"]["motivation"] == "protect the archive"
+    assert contract.important_objects == ("index",)
+    assert contract.timeline == ("one night",)
+    assert contract.world_rules == ("No supernatural events.",)
+    assert contract.constraints == ("Use third person.",)
+    assert all(scene.characters_present for scene in plan.scenes)
+    assert all(scene.immediate_obstacle and scene.concrete_actions for scene in plan.scenes)
+    assert all(scene.ending_state and scene.setup_payoff_obligations for scene in plan.scenes)
+    assert validate_story_plan(plan, 8) == ()
+
+
+def test_story_plan_rejects_incomplete_or_abstract_scene_blueprint():
+    plan = build_story_plan("A courier discovers a message meant for tomorrow.", "mystery", {"protagonist": "Noor"}, 3)
+    scenes = list(plan.scenes)
+    scenes[1] = replace(
+        scenes[1],
+        event="The tension increased.",
+        concrete_actions=(),
+        previous_scene_cause="Disconnected from the prior scene.",
+    )
+    broken = replace(plan, scenes=tuple(scenes))
+    issues = validate_story_plan(broken, 3)
+    assert "scene_2_has_no_concrete_action" in issues
+    assert "scene_2_event_is_abstract" in issues
+    assert "scene_2_causal_link_mismatch" in issues

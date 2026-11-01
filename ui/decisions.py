@@ -263,6 +263,10 @@ def build_scene_decision_record(
     return {
         "index": n,
         "total": scene_total,
+        "status": (
+            "Accepted" if scene.get("quality_gate", {}).get("accepted", False)
+            else "Provisional · needs revision"
+        ),
         "prose": prose,
         "trace": trace,
         "chosen": chosen,

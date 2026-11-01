@@ -63,8 +63,10 @@ def test_early_secret_leak_fails_after_retry_without_accepting_prose(tmp_path):
         story_id="story-secret",
     )
     result = runner.run_episode(verbose=False, render_depth="fast", seed=1)
-    assert result["scenes"] == []
-    assert result["status"] == "failed"
+    assert len(result["scenes"]) == 1
+    assert result["scenes"][0]["generation_status"] == "generated_provisional"
+    assert result["scenes"][0]["quality_gate"]["accepted"] is False
+    assert result["status"] == "generated"
     assert "protected_secret_leak" in result["scene_failures"][0]["issues"]
     assert renderer.captured_action
     assert database.list_scene_history("story-secret") == []

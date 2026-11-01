@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import re
+from difflib import SequenceMatcher
 
 
 def _normalize(text: str) -> str:
@@ -34,6 +35,22 @@ def _sentences(text: str) -> set[str]:
     }
 
 
+_DECISION = re.compile(
+    r"\b(?:decid(?:e|es|ed)|choos(?:e|es|ing)|chose|chooses|refus(?:e|es|ed)|"
+    r"agree(?:s|d)?|commit(?:s|ted)?|betray(?:s|ed)?|confess(?:es|ed)?|"
+    r"surrender(?:s|ed)?|sacrif(?:ice|ices|iced))\b",
+    re.I,
+)
+
+
+def _decision_sentences(text: str) -> list[str]:
+    return [
+        _normalize(sentence)
+        for sentence in re.split(r"(?<=[.!?])\s+", _body(text))
+        if len(_normalize(sentence).split()) >= 5 and _DECISION.search(sentence)
+    ]
+
+
 @dataclass(frozen=True)
 class RepetitionResult:
     repeated: bool
@@ -47,6 +64,7 @@ def check_repetition(text: str, prior: list[dict], action_beat: str = "") -> Rep
     current_tokens = _tokens(text)
     current_opening = _opening(text)
     current_sentences = _sentences(text)
+    current_decisions = _decision_sentences(text)
     reasons = []
     best_similarity = 0.0
     matched_opening = ""
@@ -80,4 +98,15 @@ def check_repetition(text: str, prior: list[dict], action_beat: str = "") -> Rep
                 matched_opening = sentence
         if action_beat and action_beat == item.get("beat", ""):
             reasons.append("repeated_narrative_beat")
+        for decision in current_decisions:
+            for previous_decision in _decision_sentences(previous):
+                left = set(decision.split())
+                right = set(previous_decision.split())
+                overlap = len(left & right) / len(left | right) if left and right else 0.0
+                ratio = SequenceMatcher(None, decision, previous_decision).ratio()
+                if overlap >= 0.48 or ratio >= 0.76:
+                    reasons.append("repeated_character_decision")
+                    break
+            if "repeated_character_decision" in reasons:
+                break
     return RepetitionResult(bool(reasons), tuple(dict.fromkeys(reasons)), best_similarity, matched_opening)

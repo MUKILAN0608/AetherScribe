@@ -191,7 +191,7 @@ def _render_decision_card(rec: dict):
     st.markdown(
         f"""
 <div class="decision-card">
-  <h4>Scene {rec['index']} of {rec['total']}</h4>
+  <h4>Scene {rec['index']} of {rec['total']} · {html.escape(rec['status'])}</h4>
   <div class="decision-section-title">Selected action</div>
   {chosen_html}
   <div class="decision-section-title">Why this action</div>
@@ -306,8 +306,8 @@ def render_story_tab(ep: dict):
         failures = ep.get("scene_failures") or []
         reason = ep.get("generation_error")
         st.warning(
-            f"No scenes were accepted; this run is {status}. "
-            "The story and dashboard will appear here after a scene passes validation."
+            f"No scene drafts were generated; this run is {status}. "
+            "Generation failed before usable scene prose was available."
         )
         if failures:
             st.markdown("**Scenes needing attention**")
@@ -325,12 +325,20 @@ def render_story_tab(ep: dict):
     name_map = build_name_map(ep["characters"])
     total = int(ep.get("requested_scene_count", ep.get("scenes_count", len(ep["scenes"]))))
     st.caption(
-        f"{ep.get('status', 'partial')} · requested {total} · "
+        f"{ep.get('manuscript_status', ep.get('status', 'partial'))} · requested {total} · "
         f"planned {ep.get('planned_scene_count', total)} · "
-        f"accepted {ep.get('accepted_scene_count', len(ep['scenes']))} · "
+        f"generated {ep.get('generated_scene_count', len(ep['scenes']))} · "
+        f"accepted {ep.get('accepted_scene_count', 0)} · "
+        f"provisional {ep.get('provisional_scene_count', 0)} · "
         f"failed {ep.get('failed_scene_count', len(ep.get('scene_failures', [])))}"
     )
     failures = {item.get("scene_index"): item for item in ep.get("scene_failures", [])}
+    whole_story_audit = ep.get("whole_story_audit") or {}
+    if whole_story_audit and not whole_story_audit.get("passed", False):
+        st.warning("Whole-story review found continuity or resolution issues. Review the affected scenes before treating this manuscript as complete.")
+        for finding in whole_story_audit.get("findings", ()):
+            scene_id = finding.get("scene_id", "Story")
+            st.caption(f"{scene_id}: {finding.get('message', finding.get('code', 'Needs review'))}")
     plans = {item.get("sequence", i + 1): item for i, item in enumerate(ep.get("story_plan", []))}
     with st.expander("Scene plan and status"):
         bible = ep.get("story_bible") or {}
@@ -340,8 +348,15 @@ def render_story_tab(ep: dict):
             st.markdown(f"**Stakes:** {html.escape(bible.get('stakes', ''))}")
         for scene_index in range(total):
             failure = failures.get(scene_index)
-            accepted = any(int(item.get("step", -1)) == scene_index for item in ep["scenes"])
-            status_label = "Accepted" if accepted else "Failed" if failure else "Pending"
+            scene_record = next((
+                item for item in ep["scenes"] if int(item.get("step", -1)) == scene_index
+            ), None)
+            accepted = bool(scene_record and scene_record.get("quality_gate", {}).get("accepted"))
+            provisional = bool(scene_record and not accepted)
+            status_label = (
+                "Accepted" if accepted else "Provisional · needs revision" if provisional
+                else "Failed before draft" if failure else "Pending"
+            )
             detail = ", ".join(failure.get("issues", [])) if failure else ""
             plan = plans.get(scene_index + 1, {})
             title = plan.get("title", f"Scene {scene_index + 1}")
